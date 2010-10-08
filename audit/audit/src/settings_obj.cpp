@@ -117,13 +117,35 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
     }
     qDebug("Open Log");
 
-    TransParser tparser(monitor, this);
     flog = new QFile(file_name);
-    QXmlInputSource source(flog);
-    QXmlSimpleReader reader;
 
-    reader.setContentHandler(&tparser);
-    reader.parse(source);
+    if(openFile(flog, QIODevice::ReadOnly))
+    {
+        qint64 line_ctr = 0;
+
+        // считаем количество строк в файле
+        while(!flog->atEnd())
+        {
+            flog->readLine();
+            line_ctr++;
+        }
+
+        closeFile(flog);
+
+        TransParser tparser(line_ctr, monitor, this);
+        QXmlInputSource source(flog);
+        QXmlSimpleReader reader;
+
+        reader.setContentHandler(&tparser);
+        reader.parse(source);
+
+        if(!tparser.parseOK())
+        {
+            utils.showMessage(QMessageBox::Warning,
+                              "Открытие журнала",
+                              "Файл журнала поврежден");
+        }
+    }
 
     if(closeFile(flog))
     {
@@ -444,7 +466,7 @@ short int SettingsObj::setActiveDev(int row, bool active)
 }
 
 
-void SettingsObj::setChannelDev(int row, short int channel)
+short int SettingsObj::setChannelDev(int row, short int channel)
 {
     qint8 ft_status = 0;
     DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
@@ -476,9 +498,11 @@ void SettingsObj::setChannelDev(int row, short int channel)
         if(!dev->active)
             utils.R245_CloseDev(row);
     }
+
+    return ft_status;
 }
 
-void SettingsObj::setDistDev(int row, short int dist, bool dist1)
+short int SettingsObj::setDistDev(int row, short int dist, bool dist1)
 {
     qint8 ft_status = 0;
     DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
@@ -503,9 +527,11 @@ void SettingsObj::setDistDev(int row, short int dist, bool dist1)
     {
         qDebug() << "link to dev is null";
     }
+
+    return ft_status;
 }
 
-void SettingsObj::setTimeDev(int row, short int time, bool time1)
+short int SettingsObj::setTimeDev(int row, short int time, bool time1)
 {
     qint8 ft_status = 0;
     DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
@@ -532,6 +558,8 @@ void SettingsObj::setTimeDev(int row, short int time, bool time1)
         if(!dev->active)
             utils.R245_CloseDev(row);
     }
+
+    return ft_status;
 }
 
 void SettingsObj::saveSetings()
@@ -714,23 +742,46 @@ void SettingsObj::addDevInfoToModel(/*QString num,*/ QString type, QString id,
 
         utils.R245_InitDev(row);
 
-        utils.R245_GetChan(row, &dev_new.channel);
-        utils.R245_GetDamp(row, 1, &dev_new.dist1);
-        utils.R245_GetDamp(row, 2, &dev_new.dist2);
-        utils.R245_GetTime(row, 1, &dev_new.time1);
-        utils.R245_GetTime(row, 2, &dev_new.time2);
+        if(utils.R245_GetChan(row, &dev_new.channel) == R245_OK)
+        {
+            /* Если команда отправляется без ошибок, то
+             * инициализация прошла успешно
+             */
 
-        utils.R245_CloseDev(row);
+            utils.R245_GetChan(row, &dev_new.channel);
+            utils.R245_GetDamp(row, 1, &dev_new.dist1);
+            utils.R245_GetDamp(row, 2, &dev_new.dist2);
+            utils.R245_GetTime(row, 1, &dev_new.time1);
+            utils.R245_GetTime(row, 2, &dev_new.time2);
 
-        dev_settings.append(dev_new);
+            utils.R245_CloseDev(row);
+            dev_settings.append(dev_new);
+        } else
+        {
+            qDebug() << "INIT ERROR";
+            utils.showMessage(QMessageBox::Warning,
+                              "Обнаружение устройств",
+                              "Невозможно инициалицировать устройство " + QString().setNum(row)
+                              );
+        }
+
+
     } else
     {
-        setActiveDev(row, dev->active);
-        setChannelDev(row, dev->channel);
-        setTimeDev(row, dev->time1, true);
-        setTimeDev(row, dev->time2, false);
-        setDistDev(row, dev->dist1, true);
-        setDistDev(row, dev->dist2, false);
+        if(setActiveDev(row, dev->active) == R245_OK)
+        {
+            setChannelDev(row, dev->channel);
+            setTimeDev(row, dev->time1, true);
+            setTimeDev(row, dev->time2, false);
+            setDistDev(row, dev->dist1, true);
+            setDistDev(row, dev->dist2, false);
+        } else
+        {
+            utils.showMessage(QMessageBox::Warning,
+                              "Обнаружение устройств",
+                              "Невозможно настроить подключенное устройство " + QString().setNum(row)
+                              );
+        }
     }
 }
 

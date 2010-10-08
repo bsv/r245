@@ -1,10 +1,33 @@
 #include "trans_parser.h"
 
-TransParser::TransParser(Monitor *monitor, SettingsObj *set):
+TransParser::TransParser(qint64 lcount, Monitor *monitor, SettingsObj *set):
     dev_num(""),
-    el_name(""), transact(false),
+    el_name(""), transact(false), line_ctr(0),
     monitor_obj(monitor), set_obj(set)
 {
+
+    progress = new QProgressDialog("Загрузка файла журнала", "&Cancel", 0, lcount);
+    progress->setWindowTitle("Пожалуйста подождите...");
+    progress->setMinimumDuration(0);
+    progress->setAutoClose(true);
+    progress->setModal(true);
+}
+
+TransParser::~TransParser()
+{
+    delete progress;
+}
+
+bool TransParser::startDocument()
+{
+    parse_ok = false;
+
+    progress->setValue(++line_ctr);
+    qDebug("Start doc OK");
+
+
+
+    return true;
 }
 
 bool TransParser::startElement(const QString &namespaceURI, const QString &localName, const QString &qName, const QXmlAttributes &atts)
@@ -84,6 +107,9 @@ bool TransParser::endElement(const QString &namespaceURI, const QString &localNa
     if(qName == "transact")
     {
         transact = false;
+
+        line_ctr += TRANS_LINE_COUNT;
+        progress->setValue(line_ctr);
         //qDebug("READ TRANSACT");
 
         QString tag_name = "", dev_name = "";
@@ -103,3 +129,16 @@ bool TransParser::fatalError(const QXmlParseException &exception)
     return false;
 }
 
+bool TransParser::endDocument()
+{
+    parse_ok = true;
+    progress->setValue(++line_ctr);
+
+    qDebug() << "end parse";
+    return true;
+}
+
+bool TransParser::parseOK()
+{
+    return parse_ok;
+}

@@ -19,6 +19,7 @@ MainWindow::MainWindow( QWidget * parent, Qt::WFlags f)
 
         connect(settings_button, SIGNAL(clicked()), swindow, SLOT(show()));
         connect(monitor_button, SIGNAL(clicked()), mwindow, SLOT(show()));
+
     } else
     {
         swindow = NULL;

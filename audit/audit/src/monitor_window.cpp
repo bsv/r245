@@ -1,85 +1,41 @@
 #include "monitor_window.h"
 #include "global.h"
-
-/*MonitorWindow::TransThread::TransThread(MonitorWindow *mon_win, SettingsObj *set)
-{
-    monitor_win = mon_win;
-    monitor = mon_win->getMonitor();
-    set_obj = set;
-}
-
-void MonitorWindow::TransThread::run()
-{
-    R245_TRANSACT trans;
-    short int status = 0;
-
-    while(1)
-    {
-        int dev_count = set_obj->getModel(SettingsObj::DevModel)->rowCount();
-
-
-        // !!! Исправить цикл идет по всем устройствам, надо только по подключенным и активным
-        for(int dev_num = 0; dev_num < dev_count; dev_num++)
-        {
-            while(!(status = utils.R245_GetTransact(dev_num, &trans)))
-            {
-                QString tag_name = "", dev_name = "";
-                QAbstractItemModel * tag_model = set_obj->getModel(SettingsObj::TagModel);
-                QAbstractItemModel * dev_name_model = set_obj->getModel(SettingsObj::DevNameModel);
-
-                for(int i = 0; i < tag_model->rowCount(); ++i)
-                {
-                    if((unsigned long)tag_model->index(i, 0).data().toInt() == trans.tid)
-                    {
-                        tag_name = tag_model->index(i, 1).data().toString();
-                        break;
-                    }
-                }
-
-                for(int i = 0; i < dev_name_model->rowCount(); ++i)
-                {
-                    if(dev_name_model->index(i, 0).data().toInt() == dev_num)
-                    {
-                        dev_name = dev_name_model->index(i, 1).data().toString();
-                        break;
-                    }
-                }
-                monitor->addTransToModel(QString().setNum(dev_num), &trans, tag_name, dev_name);
-                set_obj->addLogNode(QString().setNum(dev_num), &trans); // add node to log file
-                monitor_win->eventHandler(QString().setNum(dev_num), &trans);
-            }
-        }
-    }
-}*/
+#include <QObject>
 
 MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
-    QDialog(parent)
+        QDialog(parent)
 {
     setupUi(this);
 
     set_obj = set;
     monitor = mon;
 
+    connect(&future_watch, SIGNAL(finished()), SLOT(slotPrintOK()));
+
+    initPdfPrinter(&printer_pdf);
+
     monitor_view->setModel(monitor->getModel(true));
     monitor_view->hideColumn(Monitor::DevNumAttr);
     monitor_view->hideColumn(Monitor::TagIdAttr);
     monitor_view->hideColumn(Monitor::TransCodeAttr);
+    monitor_view->verticalHeader()->hide();
 
     connect(&timer, SIGNAL(timeout()), SLOT(slotUpdateTrans()));
     connect(resetFilterBtn, SIGNAL(clicked()), SLOT(slotResetFilter()));
     connect(mw_tabs, SIGNAL(currentChanged(int)), SLOT(slotTabChanged()));
-    connect(tag_check, SIGNAL(stateChanged(int)), SLOT(slotTagInform()));
+    connect(tag_check, SIGNAL(clicked()), SLOT(slotTagInform()));
     connect(print_button, SIGNAL(clicked()), SLOT(slotPrintClick()));
     connect(save_file_button, SIGNAL(clicked()), SLOT(slotSaveFile()));
     connect(clear_button, SIGNAL(clicked()), SLOT(slotClearMonitor()));
 
-    //tag_check->setChecked(true);
+    timer.start(1000);
+    slotResetFilter();
+    setFilter();
+}
 
-    timer.start(2000);
-
-
-    /*trans_thread = new TransThread();
-    trans_thread->run();*/
+void MonitorWindow::initPdfPrinter(QPrinter * printer)
+{
+    printer->setOutputFormat(QPrinter::PdfFormat);
 }
 
 void MonitorWindow::slotClearMonitor()
@@ -89,81 +45,91 @@ void MonitorWindow::slotClearMonitor()
     monitor_view->hideColumn(Monitor::DevNumAttr);
     monitor_view->hideColumn(Monitor::TagIdAttr);
     monitor_view->hideColumn(Monitor::TransCodeAttr);
+    monitor_view->verticalHeader()->hide();
 }
 
-/*MyThread::MyThread(QPrinter * pr, QTextDocument * d)
+void MonitorWindow::printThreadFunc(QTextDocument * qdoc, QPrinter * printer)
 {
-    printer = pr;
-    qdoc = d;
-}
-MyThread::~MyThread()
-{
-    qDebug("exit Thread");
+    QTextDocument * doc = qdoc->clone();
+    doc->print(printer);
 }
 
-void MyThread::run()
+void MonitorWindow::setHtmlTh(QTextDocument * qdoc, QString text)
 {
-    qDebug("Run");
-    qdoc->print(printer);
-    exec();
-
-}*/
-
+    QTextDocument * doc = qdoc->clone();
+    doc->setHtml(text);
+}
 
 void MonitorWindow::printMonitor(QPrinter * printer)
 {
-    QTextDocument qdoc;
-    QString text;
-    QAbstractItemModel * model = monitor->getModel(true);
-
-    int count_row = model->rowCount();
-
-    text = "<table bgcolor='#000000' cellpadding=3 cellspacing=2>";
-
-    text += "<tr bgcolor='#e5e5e5'><td>Время</td><td>Дата</td><td>Имя устройства</td>";
-    text += "<td>id устройства</td><td>Канал</td><td>Имя метки</td>";
-    text += "<td>id метки</td><td>Тип события</td><td>Код событя</td></tr>";
-
-
-    //QProgressDialog progress("Идет обработка событий монитора", "", 0, count_row);
-    //progress.setWindowTitle("Пожалуйста подождите...");
-    //progress.setMinimumDuration(0);
-
-    for(int row = 0; row < count_row; row++)
+    if(future_watch.isRunning())
     {
-        //progress.setValue(row);
-        //qApp->processEvents();
+        utils.showMessage(QMessageBox::Warning, "Подождите пожалуйста",
+                          "Предыдущая операция с файлом ещё не завершена.");
+    } else
+    {
+        QString text;
+        QAbstractItemModel * model = monitor->getModel(true);
 
-        text += "<tr>";
-        for(int column = 0; column <= Monitor::TransCodeAttr; column++)
+        int count_row = model->rowCount();
+
+        text = "<table bgcolor='#000000' cellpadding=3 cellspacing=2>";
+
+        text += "<tr bgcolor='#e5e5e5'><td>Время</td><td>Дата</td><td>Имя устройства</td>";
+        text += "<td>id устройства</td><td>Канал</td><td>Имя метки</td>";
+        text += "<td>id метки</td><td>Тип события</td><td>Код событя</td></tr>";
+
+        qApp->processEvents();
+        QProgressDialog progress("Обработка событий монитора", "&Cancel", 0, count_row-1);
+        progress.setWindowTitle("Пожалуйста подождите...");
+        progress.setMinimumDuration(0);
+        progress.setAutoClose(true);
+
+        for(int row = 0; row < count_row; row++)
         {
-            text += "<td bgcolor='#ffffff'>" + model->index(row, column).data().toString() + "</td>";
+            qApp->processEvents();
+            progress.setValue(row);
+
+            text += "<tr>";
+            for(int column = 0; column <= Monitor::TransCodeAttr; column++)
+            {
+                text += "<td bgcolor='#ffffff'>" + model->index(row, column).data().toString() + "</td>";
+            }
+
+            text += "</td>";
         }
 
-        text += "</td>";
+        text += "</table>";
+
+
+        qdoc.setHtml(text);
+        qApp->processEvents();
+        utils.showMessage(QMessageBox::Information, "Сохранение/печать",
+                          "Продолжайте работу с программой. По завершении операции будет показано сообщение");
+
+        QFuture<void> future = QtConcurrent::run(printThreadFunc, &qdoc, printer);
+        future_watch.setFuture(future);
+        save_file_button->setEnabled(false);
     }
+}
 
-    text += "</table>";
-
-    qdoc.setHtml(text);
-
-    //MyThread t(printer, &qdoc);
-    //t.run();
-    qdoc.print(printer);
+void MonitorWindow::slotPrintOK()
+{
+    qDebug("SAVE PDF");
+    utils.showMessage(QMessageBox::Information, "Сохранение/печать",
+                      "Сохранение/печать завершена");
+    save_file_button->setEnabled(true);
 }
 
 void MonitorWindow::slotSaveFile()
 {
     QString file_path = QFileDialog::getSaveFileName(0, "Сохранение отчета", "", "*.pdf");
 
+    qDebug("Dialog");
     if(!file_path.isEmpty())
     {
-        QPrinter printer;
-
-        printer.setOutputFormat(QPrinter::PdfFormat);
-        printer.setOutputFileName(file_path);
-
-        printMonitor(&printer);
+        printer_pdf.setOutputFileName(file_path);
+        printMonitor(&printer_pdf);
     }
 }
 
@@ -190,10 +156,14 @@ void MonitorWindow::slotTabChanged()
     if(monitor_tab->isVisible())
     {
         qDebug("apply filter");
-
-        monitor->setFilter(numChanEdt->text(), numDevEdt->text(), numTagEdt->text(), sinceDateSpn->date(),
-                           toDateSpn->date(), sinceTimeSpn->time(), toTimeSpn->time());
+        setFilter();
     }
+}
+
+void MonitorWindow::setFilter()
+{
+    monitor->setFilter(numChanEdt->text(), numDevEdt->text(), numTagEdt->text(), sinceDateSpn->date(),
+                       toDateSpn->date(), sinceTimeSpn->time(), toTimeSpn->time());
 }
 
 void MonitorWindow::slotResetFilter()
@@ -215,6 +185,7 @@ void MonitorWindow::slotUpdateTrans()
         R245_TRANSACT trans;
         short int status = 0;
         int dev_count = set_obj->getModel(SettingsObj::DevModel)->rowCount();
+        short trans_ctr = 0;
 
 
         // !!! Исправить цикл идет по всем устройствам, надо только по подключенным и активным
@@ -228,28 +199,21 @@ void MonitorWindow::slotUpdateTrans()
 
                 utils.findAlias(tag_model, QString().setNum(trans.tid), &tag_name);
                 utils.findAlias(dev_name_model, QString().setNum(dev_num), &dev_name);
-                /*for(int i = 0; i < tag_model->rowCount(); ++i)
-                {
-                    if((unsigned long)tag_model->index(i, 0).data().toInt() == trans.tid)
-                    {
-                        tag_name = tag_model->index(i, 1).data().toString();
-                        break;
-                    }
-                }
 
-                for(int i = 0; i < dev_name_model->rowCount(); ++i)
-                {
-                    if(dev_name_model->index(i, 0).data().toInt() == dev_num)
-                    {
-                        dev_name = dev_name_model->index(i, 1).data().toString();
-                        break;
-                    }
-                }*/
                 monitor->addTransToModel(QString().setNum(dev_num), &trans, tag_name, dev_name);
                 set_obj->addLogNode(QString().setNum(dev_num), &trans); // add node to log file
                 eventHandler(QString().setNum(dev_num), &trans);
 
                 monitor->update(); // При каждой транзакции сортирует всю таблицу (это плохо)
+
+                if(trans_ctr == MAX_TRANS_FOR_TIMER_INT)
+                {
+                    break; // выходит только из цикла while
+                           // с каждого устройства считываем
+                           // по MAX_TRANS_FOR_TIMER_INT транзакций
+                }
+
+                trans_ctr++;
             }
         }
         //trans_thread->run();
@@ -304,12 +268,6 @@ void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans)
                     utils.showMessage(QMessageBox::Information, event_name, msg);
                     trans->code = 0x12F;
                     set_obj->addLogNode(0, trans);
-                    /*QMessageBox* pmbx = new QMessageBox(
-                            QMessageBox::Information,
-                            event_name,
-                            msg);
-                    pmbx->exec();
-                    delete pmbx;*/
                 }
             }
         }

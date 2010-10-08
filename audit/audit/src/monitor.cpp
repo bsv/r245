@@ -95,7 +95,6 @@ void Monitor::addTransToModel(QString dev_num, R245_TRANSACT * trans, const QStr
         }
         monitor_model->setItem(row, DevNumAttr, new QStandardItem(dev_num));
 
-
         monitor_model->setItem(row, DateAttr, new QStandardItem(QDate(trans->year, trans->month, trans->day).toString(Qt::LocalDate)));
         monitor_model->setItem(row, TimeAttr, new QStandardItem(QTime(trans->hour, trans->min, trans->sec).toString()));
 }

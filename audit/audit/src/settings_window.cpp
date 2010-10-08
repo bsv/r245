@@ -183,7 +183,6 @@ void SettingsWindow::slotSaveSetings()
             unsigned short time1 = utils.timeToSec(time1_edt->time());
             unsigned short time2 = utils.timeToSec(time2_edt->time());
 
-
             QAbstractItemModel * model = set_obj->getModel(SettingsObj::DevModel);
             DEV_INFO * dev = set_obj->getDevSettings(model->data(model->index(row, SettingsObj::Id)).toInt());
 
@@ -194,15 +193,50 @@ void SettingsWindow::slotSaveSetings()
             qDebug() << "Channel" << channel;
 
             if(dev->channel != channel)
-                set_obj->setChannelDev(row, channel);
+            {
+                if(set_obj->setChannelDev(row, channel) != R245_OK)
+                {
+                    utils.showMessage(QMessageBox::Warning,
+                                      "Настройка каналов",
+                                      "Невозможно обновить настройки каналов");
+                }
+            }
             if(dev->time1 != time1)
-                set_obj->setTimeDev(row, time1, true);
+            {
+                if(set_obj->setTimeDev(row, time1, true) != R245_OK)
+                {
+                    utils.showMessage(QMessageBox::Warning,
+                                      "Настройка времени реакции",
+                                      "Невозможно обновить настройки времени реакции для первого канала");
+                }
+            }
             if(dev->time2 != time2)
-                set_obj->setTimeDev(row, time2, false);
+            {
+                if(set_obj->setTimeDev(row, time2, false) != R245_OK)
+                {
+                    utils.showMessage(QMessageBox::Warning,
+                                      "Настройка времени реакции",
+                                      "Невозможно обновить настройки времени реакции для второго канала");
+                }
+            }
             if(dev->dist1 != dist1_le->text().toInt())
-                set_obj->setDistDev(row, dist1_le->text().toInt(), true);
+            {
+                if(set_obj->setDistDev(row, dist1_le->text().toInt(), true) != R245_OK)
+                {
+                    utils.showMessage(QMessageBox::Warning,
+                                      "Настройка дальности считывания",
+                                      "Невозможно обновить настройки дальности считывания для первого канала");
+                }
+            }
             if(dev->dist2 != dist2_le->text().toInt())
-                set_obj->setDistDev(row, dist2_le->text().toInt(), false);
+            {
+                if(set_obj->setDistDev(row, dist2_le->text().toInt(), false) != R245_OK)
+                {
+                    utils.showMessage(QMessageBox::Warning,
+                                      "Настройка дальности считывания",
+                                      "Невозможно обновить настройки дальности считывания для второго канала");
+                }
+            }
         }
     } else
     {
@@ -409,7 +443,10 @@ void SettingsWindow::slotOpenLog(bool dialog)
     if(dialog)
         openFile(log_le, "Выберите файл журнала");
     if(log_le->text() != "")
+    {
         set_obj->openLogFile(log_le->text(), monitor_obj);
+        monitor_obj->update();
+    }
 
     monitor_obj->updateAlias((QStandardItemModel *)set_obj->getModel(SettingsObj::TagModel),
                              (QStandardItemModel *)set_obj->getModel(SettingsObj::DevNameModel));

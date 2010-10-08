@@ -1,6 +1,8 @@
 #ifndef R245_TYPES_H
 #define R245_TYPES_H
 
+#define R245_OK 0
+
 typedef struct struct_r245_dev_info
 {
     unsigned long flags;

@@ -81,9 +81,9 @@ public:
                            QString loc_id = "",
                            QString desc = "");
     short int setActiveDev(int row, bool active);
-    void setChannelDev(int row, short int channel);
-    void setTimeDev(int row, short int time, bool time1);
-    void setDistDev(int row, short int dist, bool dist1);
+    short int setChannelDev(int row, short int channel);
+    short int setTimeDev(int row, short int time, bool time1);
+    short int setDistDev(int row, short int dist, bool dist1);
     DEV_INFO * getDevSettings(unsigned int id);
     void readDevInfo();
     void saveSetings();

@@ -15,37 +15,12 @@
 #include "monitor.h"
 #include "ui_monitor_window.h"
 
-/*class MyThread: QThread
-{
-private:
-    QTextDocument * qdoc;
-    QPrinter * printer;
+#define MAX_TRANS_FOR_TIMER_INT 5
 
-public:
-    MyThread(QPrinter * pr, QTextDocument * d);
-    ~MyThread();
-
-    void run();
-
-};*/
 
 class MonitorWindow : public QDialog, public Ui::MonitorWindow
 {
     Q_OBJECT
-    
-    /*class TransThread : QThread
-    {
-    public:
-        TransThread(MonitorWindow * mon_win, SettingsObj * set);
-
-        void run();
-
-    private:
-        SettingsObj * set_obj;
-        MonitorWindow * monitor_win;
-        Monitor * monitor;
-    };*/
-
 public:
     MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent = 0);
     ~MonitorWindow();
@@ -57,9 +32,18 @@ private:
     SettingsObj * set_obj;
     Monitor * monitor;
     //TransThread * trans_thread;
+    QPrinter printer_pdf;
+    QTextDocument qdoc;
+    QFutureWatcher<void> future_watch;
+    QFutureWatcher<void> f_watch;
+
+    static void printThreadFunc(QTextDocument * qdoc, QPrinter * printer);
+    static void initPdfPrinter(QPrinter * printer);
+    static void setHtmlTh(QTextDocument * qdoc, QString text);
 
     void initMas();
     void printMonitor(QPrinter * printer);
+    void setFilter();
 private slots:
     void slotUpdateTrans();
     void slotResetFilter();
@@ -68,6 +52,8 @@ private slots:
     void slotPrintClick();
     void slotSaveFile();
     void slotClearMonitor();
+
+    void slotPrintOK();
 };
 
 #endif // __MONITOR_WINDOW_H__

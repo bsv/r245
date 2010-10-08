@@ -5,6 +5,7 @@
 #include <QLibrary>
 #include <QAbstractItemModel>
 #include <QTime>
+#include <QFile>
 #include <QMessageBox>
 #include <QStandardItemModel>
 #include <QStandardItem>
@@ -27,6 +28,7 @@ public:
     int timeToSec(QTime time);
     QTime secToTime(int time_sec);
     void showMessage(QMessageBox::Icon icon, QString header, QString msg);
+
     // Import functions from libr245dll.dll
     
     Init R245_Init;
