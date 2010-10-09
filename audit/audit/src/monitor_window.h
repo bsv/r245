@@ -17,6 +17,18 @@
 
 #define MAX_TRANS_FOR_TIMER_INT 5
 
+/*class PrintThread : QThread
+{
+public:
+    PrintThread();
+    void start(QTextDocument *qdoc, QPrinter *pr, Priority priority = InheritPriority);
+    void run();
+
+private:
+    QTextDocument * doc;
+    QPrinter * printer;
+};*/
+
 
 class MonitorWindow : public QDialog, public Ui::MonitorWindow
 {
@@ -35,7 +47,7 @@ private:
     QPrinter printer_pdf;
     QTextDocument qdoc;
     QFutureWatcher<void> future_watch;
-    QFutureWatcher<void> f_watch;
+    //PrintThread print_thread;
 
     static void printThreadFunc(QTextDocument * qdoc, QPrinter * printer);
     static void initPdfPrinter(QPrinter * printer);
@@ -49,7 +61,6 @@ private slots:
     void slotResetFilter();
     void slotTabChanged();
     void slotTagInform();
-    void slotPrintClick();
     void slotSaveFile();
     void slotClearMonitor();
 

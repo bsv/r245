@@ -19,12 +19,12 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
     monitor_view->hideColumn(Monitor::TagIdAttr);
     monitor_view->hideColumn(Monitor::TransCodeAttr);
     monitor_view->verticalHeader()->hide();
+    monitor_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
     connect(&timer, SIGNAL(timeout()), SLOT(slotUpdateTrans()));
     connect(resetFilterBtn, SIGNAL(clicked()), SLOT(slotResetFilter()));
     connect(mw_tabs, SIGNAL(currentChanged(int)), SLOT(slotTabChanged()));
     connect(tag_check, SIGNAL(clicked()), SLOT(slotTagInform()));
-    connect(print_button, SIGNAL(clicked()), SLOT(slotPrintClick()));
     connect(save_file_button, SIGNAL(clicked()), SLOT(slotSaveFile()));
     connect(clear_button, SIGNAL(clicked()), SLOT(slotClearMonitor()));
 
@@ -51,7 +51,11 @@ void MonitorWindow::slotClearMonitor()
 void MonitorWindow::printThreadFunc(QTextDocument * qdoc, QPrinter * printer)
 {
     QTextDocument * doc = qdoc->clone();
+
+    QTime time;
+    time.start();
     doc->print(printer);
+    qDebug() << time.elapsed();
 }
 
 void MonitorWindow::setHtmlTh(QTextDocument * qdoc, QString text)
@@ -59,6 +63,38 @@ void MonitorWindow::setHtmlTh(QTextDocument * qdoc, QString text)
     QTextDocument * doc = qdoc->clone();
     doc->setHtml(text);
 }
+
+//print thread==========================
+/*PrintThread::PrintThread()
+{
+    doc = NULL;
+}
+
+void PrintThread::start(QTextDocument *qdoc, QPrinter *pr, Priority priority)
+{
+    delete doc;
+
+    doc = qdoc->clone();
+    doc->moveToThread(this);
+    printer = pr;
+    QThread::start(priority);
+}
+
+void PrintThread::run()
+{
+    QTime time;
+    time.start();
+    doc->print(printer);
+    qDebug() << time.elapsed();
+
+    qDebug("Print finished");
+
+    delete doc;
+    doc = NULL;
+}*/
+
+//print thread==========================
+
 
 void MonitorWindow::printMonitor(QPrinter * printer)
 {
@@ -77,7 +113,7 @@ void MonitorWindow::printMonitor(QPrinter * printer)
 
         text += "<tr bgcolor='#e5e5e5'><td>Время</td><td>Дата</td><td>Имя устройства</td>";
         text += "<td>id устройства</td><td>Канал</td><td>Имя метки</td>";
-        text += "<td>id метки</td><td>Тип события</td><td>Код событя</td></tr>";
+        text += "<td>id метки</td><td>Тип события</td><td>Код события</td></tr>";
 
         qApp->processEvents();
         QProgressDialog progress("Обработка событий монитора", "&Cancel", 0, count_row-1);
@@ -110,6 +146,9 @@ void MonitorWindow::printMonitor(QPrinter * printer)
         QFuture<void> future = QtConcurrent::run(printThreadFunc, &qdoc, printer);
         future_watch.setFuture(future);
         save_file_button->setEnabled(false);
+        /*qApp->processEvents();
+        print_thread.start(&qdoc, printer, QThread::TimeCriticalPriority);
+        qApp->processEvents();*/
     }
 }
 
@@ -131,19 +170,6 @@ void MonitorWindow::slotSaveFile()
         printer_pdf.setOutputFileName(file_path);
         printMonitor(&printer_pdf);
     }
-}
-
-void MonitorWindow::slotPrintClick()
-{
-    QPrinter printer;
-
-    QPrintDialog dialog(&printer);
-
-    if(dialog.exec() == QDialog::Accepted)
-    {
-        printMonitor(&printer);
-    }
-
 }
 
 void MonitorWindow::slotTagInform()

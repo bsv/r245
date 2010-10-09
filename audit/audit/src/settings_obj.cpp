@@ -534,7 +534,8 @@ short int SettingsObj::setDistDev(int row, short int dist, bool dist1)
 short int SettingsObj::setTimeDev(int row, short int time, bool time1)
 {
     qint8 ft_status = 0;
-    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
+    DEV_INFO * dev = NULL;
+    dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
     unsigned char channel = (time1)? 1: 2;
 
     qDebug() << "Set time: " << time;

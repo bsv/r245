@@ -382,7 +382,7 @@ void SettingsWindow::slotAdd()
 
 void SettingsWindow::slotDelete()
 {
-    QTableView * table_view;
+    QTableView * table_view = NULL;
     SettingsObj::TypeModel type_model;
 
     if(tag_tab->isVisible())
