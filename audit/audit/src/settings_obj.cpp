@@ -512,7 +512,7 @@ short int SettingsObj::setDistDev(int row, short int dist, bool dist1)
     {
         if(!dev->active)
             utils.R245_InitDev(row);
-        ft_status = utils.R245_SetDamp(row, channel, dist);
+        ft_status = utils.R245_SetDamp(row, channel, 31 - dist);
 
         if(!ft_status)
         {

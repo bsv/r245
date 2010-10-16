@@ -1,3 +1,11 @@
+/**
+  * @file global.h
+  * @authors Быковский Сергей (bsv.serg@gmail.com)
+  * @authors Авдюшкин Василий
+  *
+  * Содержит глобальные определения программы.
+  */
+
 #ifndef GLOBAL_H
 #define GLOBAL_H
 

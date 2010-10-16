@@ -527,6 +527,26 @@ R245_API FT_STATUS R245_GetTime(unsigned char num_dev,
     return ft_status;
 }
 
+R245_API FT_STATUS R245_ClearTrans(unsigned char num_dev)
+{
+    FT_STATUS ft_status;
+    R245_DEV_INFO info;
+
+    R245_GetDevInfo(num_dev, &info);
+
+    unsigned char rx_data_len = 0;
+
+    ft_status = R245_PacketSend(info.ft_handle, DEV_ADDR, CLEAR_TRANS, NULL,
+            0, NULL, &rx_data_len);
+
+    if(!ft_status)
+    {
+        printf("GET Time OK\n");
+    }
+
+    return ft_status;
+}
+
 R245_API FT_STATUS R245_SetTime(unsigned char num_dev,
         unsigned char num_ch, short int time)
 {
@@ -595,8 +615,6 @@ R245_API FT_STATUS R245_GetChan(unsigned char num_dev, unsigned char * ch)
     }
 
     *ch = channel;
-
-
 
     return ft_status;
 }

@@ -1,7 +1,12 @@
 #include "monitor_window.h"
 #include "global.h"
-#include <QObject>
+#include <QAxWidget>
 
+/**
+  * @param set - указатель на объект, отвечающий за настройки приложения.
+  * @param mon - указатель на объект монитора.
+  * @param parent - указатель на объект предка.
+  */
 MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
         QDialog(parent)
 {
@@ -12,7 +17,7 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
 
     connect(&future_watch, SIGNAL(finished()), SLOT(slotPrintOK()));
 
-    initPdfPrinter(&printer_pdf);
+    printer_pdf.setOutputFormat(QPrinter::PdfFormat);
 
     monitor_view->setModel(monitor->getModel(true));
     monitor_view->hideColumn(Monitor::DevNumAttr);
@@ -28,16 +33,15 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
     connect(save_file_button, SIGNAL(clicked()), SLOT(slotSaveFile()));
     connect(clear_button, SIGNAL(clicked()), SLOT(slotClearMonitor()));
 
-    timer.start(1000);
+    timer.start(REQ_PERIOD);
     slotResetFilter();
     setFilter();
 }
 
-void MonitorWindow::initPdfPrinter(QPrinter * printer)
-{
-    printer->setOutputFormat(QPrinter::PdfFormat);
-}
-
+/**
+  * Очищает модель монитора и вид monitor_view,
+  * который отображает данные модели.
+  */
 void MonitorWindow::slotClearMonitor()
 {
     monitor->clear();
@@ -48,55 +52,30 @@ void MonitorWindow::slotClearMonitor()
     monitor_view->verticalHeader()->hide();
 }
 
+/**
+  * Статическая функция печати текстового документа. Может выполняться в
+  * отдельном потоке.
+  *
+  * @param qdoc - указатель на текстовый документ, приготовленный к печати.
+  * @param printer - указатель на объект принтера.
+  */
 void MonitorWindow::printThreadFunc(QTextDocument * qdoc, QPrinter * printer)
 {
     QTextDocument * doc = qdoc->clone();
 
-    QTime time;
-    time.start();
+    //QTime time;
+    //time.start();
     doc->print(printer);
-    qDebug() << time.elapsed();
+    //qDebug() << time.elapsed();
 }
 
-void MonitorWindow::setHtmlTh(QTextDocument * qdoc, QString text)
-{
-    QTextDocument * doc = qdoc->clone();
-    doc->setHtml(text);
-}
-
-//print thread==========================
-/*PrintThread::PrintThread()
-{
-    doc = NULL;
-}
-
-void PrintThread::start(QTextDocument *qdoc, QPrinter *pr, Priority priority)
-{
-    delete doc;
-
-    doc = qdoc->clone();
-    doc->moveToThread(this);
-    printer = pr;
-    QThread::start(priority);
-}
-
-void PrintThread::run()
-{
-    QTime time;
-    time.start();
-    doc->print(printer);
-    qDebug() << time.elapsed();
-
-    qDebug("Print finished");
-
-    delete doc;
-    doc = NULL;
-}*/
-
-//print thread==========================
-
-
-void MonitorWindow::printMonitor(QPrinter * printer)
+/**
+  * Сохраняет данные монитора с учетом параметров фильтрации в
+  * в файл csv.
+  *
+  * @param file_path - имя сохраняемого файла.
+  */
+void MonitorWindow::printMonitor(QString file_path)
 {
     if(future_watch.isRunning())
     {
@@ -104,54 +83,82 @@ void MonitorWindow::printMonitor(QPrinter * printer)
                           "Предыдущая операция с файлом ещё не завершена.");
     } else
     {
-        QString text;
+
+        QFile file(file_path);
+
+        if(!file.open(QIODevice::WriteOnly))
+        {
+            utils.showMessage(QMessageBox::Warning, "Внимание",
+                              "Невозможно сохранить файл с именем: <br>" + file_path);
+            return;
+        }
+
         QAbstractItemModel * model = monitor->getModel(true);
 
         int count_row = model->rowCount();
 
-        text = "<table bgcolor='#000000' cellpadding=3 cellspacing=2>";
-
-        text += "<tr bgcolor='#e5e5e5'><td>Время</td><td>Дата</td><td>Имя устройства</td>";
-        text += "<td>id устройства</td><td>Канал</td><td>Имя метки</td>";
-        text += "<td>id метки</td><td>Тип события</td><td>Код события</td></tr>";
-
-        qApp->processEvents();
         QProgressDialog progress("Обработка событий монитора", "&Cancel", 0, count_row-1);
         progress.setWindowTitle("Пожалуйста подождите...");
         progress.setMinimumDuration(0);
         progress.setAutoClose(true);
+        progress.setModal(true);
 
-        for(int row = 0; row < count_row; row++)
+        QString data = "";
+        QString value = "";
+
+        // write table header
+        for(int column = 0; column <= Monitor::TypeEventAttr; column++)
         {
-            qApp->processEvents();
-            progress.setValue(row);
-
-            text += "<tr>";
-            for(int column = 0; column <= Monitor::TransCodeAttr; column++)
-            {
-                text += "<td bgcolor='#ffffff'>" + model->index(row, column).data().toString() + "</td>";
-            }
-
-            text += "</td>";
+            data += model->headerData(column, Qt::Horizontal).toString() + ";";
         }
 
-        text += "</table>";
+        data += "\n";
 
+        // write table data
+        for(int row = 0; row < count_row; row++)
+        {
+            progress.setValue(row);
 
-        qdoc.setHtml(text);
-        qApp->processEvents();
-        utils.showMessage(QMessageBox::Information, "Сохранение/печать",
-                          "Продолжайте работу с программой. По завершении операции будет показано сообщение");
+            for(int column = 0; column <= Monitor::TypeEventAttr; column++)
+            {
+                qApp->processEvents();
+                value = model->index(row, column).data().toString();
 
-        QFuture<void> future = QtConcurrent::run(printThreadFunc, &qdoc, printer);
-        future_watch.setFuture(future);
-        save_file_button->setEnabled(false);
-        /*qApp->processEvents();
-        print_thread.start(&qdoc, printer, QThread::TimeCriticalPriority);
-        qApp->processEvents();*/
+                // Удаляем служебные символы из строки
+                // Могут встречаться при чтении из пустой ячейки
+                value.remove("\n");
+                value.remove("\r");
+
+                data += value + ";";
+            }
+            data += "\n";
+        }
+
+        //save file
+        QTextStream stream(&file);
+        stream << data;
+        file.close();
+
+        // В том, что закомментировано не работает SaveAs
+
+        /*QAxObject* excel = new QAxObject( "Excel.Application", this ); //получаем указатьтель на excel
+        QAxObject *workbooks = excel->querySubObject( "Workbooks" ); //получаем указатель на список книг
+        QAxObject *workbook = workbooks->querySubObject( "Open(const QString&)", file_path);
+        QAxObject * worksheet = workbook->querySubObject("Worksheets(int)", 1);
+
+        qDebug() << file_path.remove(".csv");
+        worksheet->dynamicCall("SaveAs (const QString&)", QString(file_path.remove(".csv")));
+        //excel->setProperty("DisplayAlerts", 1);
+        workbook->dynamicCall("Close (Boolean)", false);
+
+        excel->dynamicCall("Quit (void)");*/
     }
 }
 
+
+/**
+  * Отображает сообщение о завершении печати и активирует кнопку сохранения файла.
+  */
 void MonitorWindow::slotPrintOK()
 {
     qDebug("SAVE PDF");
@@ -160,23 +167,33 @@ void MonitorWindow::slotPrintOK()
     save_file_button->setEnabled(true);
 }
 
+/**
+  * Сохраняет данные отфильтрованного монитора в файл csv.
+  */
 void MonitorWindow::slotSaveFile()
 {
-    QString file_path = QFileDialog::getSaveFileName(0, "Сохранение отчета", "", "*.pdf");
+    QString file_path = QFileDialog::getSaveFileName(0, "Сохранение отчета", "", "*.csv");
 
     qDebug("Dialog");
     if(!file_path.isEmpty())
     {
         printer_pdf.setOutputFileName(file_path);
-        printMonitor(&printer_pdf);
+        printMonitor(file_path);
     }
 }
 
+/**
+  * В зависимости от выбора tag_check, в мониторе отображаются
+  * либо все события, либо события, связанные с метками.
+  */
 void MonitorWindow::slotTagInform()
 {
     monitor->onlyTagInf(tag_check->isChecked());
 }
 
+/**
+  * При переключении на вкладку с монитором обнавляется значение фильтра.
+  */
 void MonitorWindow::slotTabChanged()
 {
     if(monitor_tab->isVisible())
@@ -186,24 +203,36 @@ void MonitorWindow::slotTabChanged()
     }
 }
 
+/**
+  * Устанавливает значение фильтра для событий монитора.
+  */
 void MonitorWindow::setFilter()
 {
-    monitor->setFilter(numChanEdt->text(), numDevEdt->text(), numTagEdt->text(), sinceDateSpn->date(),
-                       toDateSpn->date(), sinceTimeSpn->time(), toTimeSpn->time());
+    monitor->setFilter(numChanEdt->text(), numDevEdt->text(),
+                       numTagEdt->text(), event_edt->text(),
+                       sinceDateSpn->date(), toDateSpn->date(),
+                       sinceTimeSpn->time(), toTimeSpn->time());
 }
 
+/**
+  * Сбрасывает значение фильтра событий.
+  */
 void MonitorWindow::slotResetFilter()
 {
     qDebug("reset filter");
     numChanEdt->setText("");
     numDevEdt->setText("");
     numTagEdt->setText("");
+    event_edt->setText("");
     sinceDateSpn->setDate(QDate().fromString("01.09.2010", Qt::LocalDate));
     toDateSpn->setDate(QDate().currentDate());
     sinceTimeSpn->setTime(QTime().fromString("00:00:00"));
     toTimeSpn->setTime(QTime().fromString("23:59:59"));
 }
 
+/**
+  * Цикл считывания транзакиций из журнала считывателя
+  */
 void MonitorWindow::slotUpdateTrans()
 {
     if(this->isActiveWindow())
@@ -219,6 +248,9 @@ void MonitorWindow::slotUpdateTrans()
         {
             while(!(status = utils.R245_GetTransact(dev_num, &trans)))
             {
+                // Запрещаем очищать модель когда идет считывание транзакций
+                clear_button->setEnabled(false);
+
                 QString tag_name = "", dev_name = "";
                 QAbstractItemModel * tag_model = set_obj->getModel(SettingsObj::TagModel);
                 QAbstractItemModel * dev_name_model = set_obj->getModel(SettingsObj::DevNameModel);
@@ -228,7 +260,7 @@ void MonitorWindow::slotUpdateTrans()
 
                 monitor->addTransToModel(QString().setNum(dev_num), &trans, tag_name, dev_name);
                 set_obj->addLogNode(QString().setNum(dev_num), &trans); // add node to log file
-                eventHandler(QString().setNum(dev_num), &trans);
+                eventHandler(QString().setNum(dev_num), &trans, tag_name, dev_name);
 
                 monitor->update(); // При каждой транзакции сортирует всю таблицу (это плохо)
 
@@ -242,16 +274,30 @@ void MonitorWindow::slotUpdateTrans()
                 trans_ctr++;
             }
         }
-        //trans_thread->run();
-    } //else trans_thread->exit();
+        clear_button->setEnabled(true);
+    }
 }
 
+/**
+  * Возвращает указатель на объект монитора.
+  *
+  * @return Monitor *
+  */
 Monitor * MonitorWindow::getMonitor()
 {
     return monitor;
 }
 
-void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans)
+/**
+  * Обрабатывает полученные от считывателя транзакции в соответствии с
+  * установленными настройками событий.
+  *
+  * @param dev_num - числовой идентификатор устройства.
+  * @param trans - указатель на структуру, хранящей информацию о принятой транзакции.
+  * @param tag_name - синоним тега, если нет, то передается по умолчанию пустая строка
+  * @param dev_name - синоним устройства, если нет, то передается по умолчанию пустая строка
+  */
+void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans, QString tag_name, QString dev_name)
 {
     QStandardItemModel * event_model = (QStandardItemModel *)set_obj->getModel(SettingsObj::EventModel);
 
@@ -286,20 +332,33 @@ void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans)
                 } else if(react == "показать сообщение")
                 {
                     QString msg = "<table><tr><td>Событие: </td><td>" + event_msg + "</td></tr>" +
-                                  "<tr><td>Таг: </td><td>" + id_tag + "</td></tr>" +
-                                  "<tr><td>Устройство: </td><td>" + id_dev + "</td></tr>" +
-                                  "<tr><td>Канал: </td><td>" + chanell + "</td></tr></table>";
+                                  "<tr><td>Таг: </td><td>" + id_tag + "</td></tr>";
+                    if(tag_name != "")
+                    {
+                        msg += "<tr><td>Имя тага: </td><td>" + tag_name + "</td></tr>";
+                    }
+                    msg += "<tr><td>Устройство: </td><td>" + id_dev + "</td></tr>";
+                    if(dev_name != "")
+                    {
+                        msg += "<tr><td>Имя устройства: </td><td>" + dev_name + "</td></tr>";
+                    }
+                    msg += "<tr><td>Канал: </td><td>" + chanell + "</td></tr></table>";
 
 
                     utils.showMessage(QMessageBox::Information, event_name, msg);
                     trans->code = 0x12F;
-                    set_obj->addLogNode(0, trans);
+                    set_obj->addLogNode(dev_num, trans);
+                    monitor->addTransToModel(dev_num, trans, tag_name, dev_name);
                 }
             }
         }
     }
 }
 
+/**
+  * Деструктор закрывает все открытые устройства при удалении
+  * объекта окна монитора.
+  */
 MonitorWindow::~MonitorWindow()
 {
     utils.R245_CloseAllDev();

@@ -1,3 +1,12 @@
+/**
+  * @file utils.h
+  * @authors Быковский Сергей (bsv.serg@gmail.com)
+  * @authors Авдюшкин Василий
+  *
+  * Содержит описание класса утилит. Возможности класса используются
+  * для решения вспомогательных задач приложения.
+  */
+
 #ifndef __UTILS_H__
 #define __UTILS_H__
 
@@ -30,7 +39,10 @@ public:
     void showMessage(QMessageBox::Icon icon, QString header, QString msg);
 
     // Import functions from libr245dll.dll
-    
+    /** @name Определение имен функций, импортируемых из библиотеки libr245dll.dll
+      * @{
+      */
+
     Init R245_Init;
     CloseAllDev R245_CloseAllDev;
     GetNumDevs R245_GetNumDevs;
@@ -49,6 +61,7 @@ public:
     GetChan R245_GetChan;
     SetTimeRTC R245_SetTimeRTC;
     SetDateRTC R245_SetDateRTC;
+    /** @} */
 };
 
 #endif // __UTILS_H__

@@ -1,8 +1,22 @@
+/**
+  * @file r245_types.h
+  * @authors Быковский Сергей (bsv.serg@gmail.com)
+  * @authors Авдюшкин Василий
+  *
+  * Содержит описание типов, используемых в приложении.
+  */
+
 #ifndef R245_TYPES_H
 #define R245_TYPES_H
 
+/// Признак успешного завершения функций работы со считывателем
 #define R245_OK 0
 
+/**
+  * Структура, хранящая информацию о устройстве.
+  * Аналогична структуре библиотеки libr245dll.dll
+  * для работы с устройством считывателя.
+  */
 typedef struct struct_r245_dev_info
 {
     unsigned long flags;
@@ -15,6 +29,9 @@ typedef struct struct_r245_dev_info
 
 } R245_DEV_INFO;
 
+/**
+  * Структура, хранящая информацию о настройках устройства считывателя.
+  */
 typedef struct struct_dev_info
 {
     unsigned int id;
@@ -26,6 +43,10 @@ typedef struct struct_dev_info
     unsigned char dist2;
 } DEV_INFO;
 
+/**
+  * Структура, хранящая информацию о транзакции, полученной от считывателя.
+  * Аналогична структуре библиотеки libr245dll.dll.
+  */
 typedef struct struct_transact
 {
     short unsigned int code;
@@ -40,6 +61,11 @@ typedef struct struct_transact
     unsigned char dow;
 } R245_TRANSACT;
 
+/**
+  * Структура, хранящая информацию о настройках времени внутренних
+  * часов считывателя.
+  * Аналогична структуре библиотеки libr245dll.dll.
+  */
 typedef struct struct_rtc
 {
     unsigned char hour;
@@ -51,6 +77,9 @@ typedef struct struct_rtc
     unsigned char day;
 } R245_RTC;
 
+/** @name Определение типов функций, соответствующих функциям библиотеки libr245dll.dll
+  * @{
+  */
 typedef short int (*InitDev) (short int);
 typedef short int (*AuditEn) (unsigned char, unsigned char);
 typedef short int (*GetVersion) (void *, unsigned char, unsigned char *);
@@ -69,5 +98,6 @@ typedef short int (*SetChan) (unsigned char, unsigned char, unsigned char);
 typedef short int (*GetChan) (unsigned char, unsigned char *);
 typedef short int (*SetTimeRTC) (unsigned char, R245_RTC *);
 typedef short int (*SetDateRTC) (unsigned char, R245_RTC *);
+/** @} */
 
 #endif // R245_TYPES_H

@@ -14,6 +14,7 @@ Monitor::Monitor()
     initMas();
 }
 
+/// Устанавливает горизонтальный заголовок табличной модели monitor_model.
 void Monitor::initHeader()
 {
     QStringList header;
@@ -22,17 +23,27 @@ void Monitor::initHeader()
     monitor_model->setHorizontalHeaderLabels(header);
 }
 
+/**
+  * Очищает модель монитора.
+  */
 void Monitor::clear()
 {
     monitor_model->clear();
     initHeader();
 }
 
+/**
+  * Функция возвращает информацию о кодах возможных событий программы.
+  *
+  * @return QMap <int, QString> * - ссылка на карту state, которая хранит отображение
+  * кода события в его строовое название.
+  */
 QMap <int, QString> * Monitor::getState()
 {
     return &state;
 }
 
+/// Инициализирует карту state.
 void Monitor::initMas()
 {
     state[0x01]  = "Питание считывателя включено";
@@ -66,6 +77,14 @@ void Monitor::initMas()
     state[0x12F] = "Оператор среагировал на событие";
 }
 
+/**
+  * Функция добавляет информацию о событии в модель монитора.
+  *
+  * @param dev_num - числовой идентификатор устройства
+  * @param trans - ссылка на структуру, хранящей информацию о событии
+  * @param tag_name - символьный идентификатор метки
+  * @param dev_name - символьный идентификатор устройства
+  */
 void Monitor::addTransToModel(QString dev_num, R245_TRANSACT * trans, const QString &tag_name, const QString &dev_name)
 {
         int row = 0/*monitor_model->rowCount()*/;
@@ -99,10 +118,22 @@ void Monitor::addTransToModel(QString dev_num, R245_TRANSACT * trans, const QStr
         monitor_model->setItem(row, TimeAttr, new QStandardItem(QTime(trans->hour, trans->min, trans->sec).toString()));
 }
 
-void Monitor::setFilter(QString channel, QString device, QString tag, QDate daten, QDate datem,
+/**
+  * Функция устанавливает параметры фильтрации данных модели монитора.
+  * Управляет содержимым вспомогательной модели monitor_model_proxy.
+  *
+  * @param channel - регулярное выражение для фильтрации каналов, регистрирующих события.
+  * @param device - регулярное выражение для фильтрации устройств по символьному и числовому идентификаторам.
+  * @param tag - регулярное выражение для фильтрации меток по символьному и числовому идентификаторам
+  * @param daten - нижняя граница даты.
+  * @param datem - верхняя граница даты.
+  * @param timen - нижняя граница времени.
+  * @param timem - верхняя граница времени.
+  */
+void Monitor::setFilter(QString channel, QString device, QString tag, QString event, QDate daten, QDate datem,
                         QTime timen, QTime timem)
 {
-    monitor_model_proxy->setRegExp(QRegExp(channel), QRegExp(device), QRegExp(tag));
+    monitor_model_proxy->setRegExp(QRegExp(channel), QRegExp(device), QRegExp(tag), QRegExp(event));
     monitor_model_proxy->setFilterMinimumDate(daten);
     monitor_model_proxy->setFilterMaximumDate(datem);
     monitor_model_proxy->setFilterMinimumTime(timen);
@@ -111,11 +142,21 @@ void Monitor::setFilter(QString channel, QString device, QString tag, QDate date
     update();
 }
 
+/**
+  * Обнавляет модель монитора в соответствии с установленными
+  * параметрами фильтрации.
+  */
 void Monitor::update()
 {
     monitor_model_proxy->setFilterRegExp(QRegExp(""));
 }
 
+/**
+  * Функция позволяет задать режим показа событий в мониторе.
+  *
+  * @param only - если true, то monitor_model_proxy отображает события, связанные с метками,
+  *     если false, то отображаются все события.
+  */
 void Monitor::onlyTagInf(bool only)
 {
     if(only)
@@ -128,6 +169,14 @@ void Monitor::onlyTagInf(bool only)
     update();
 }
 
+/**
+  * Функция возвращает указатели на модели,
+  * которые являются закрытыми членами класса.
+  *
+  * @param proxy - если true, то возвращается указатель на модель monitor_model_proxy,
+  *     если false, то возращается указатель на monitor_model.
+  * @return QAbstractItemModel * - указатель на модель.
+  */
 QAbstractItemModel * Monitor::getModel(bool proxy)
 {
     if(proxy)
@@ -136,6 +185,12 @@ QAbstractItemModel * Monitor::getModel(bool proxy)
         return monitor_model;
 }
 
+/**
+  * Обновляет значение псевдонимов для меток и устройств.
+  *
+  * @param tag_model - ссылка на модель, хранящей данные о псевдонимах меток.
+  * @param dev_name_model - ссылка на модель, хранящей данные о псевдонимах устройств.
+  */
 void Monitor::updateAlias(QStandardItemModel * tag_model, QStandardItemModel * dev_name_model)
 {
     QStandardItem * dev_item, * tag_item;

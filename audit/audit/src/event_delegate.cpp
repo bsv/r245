@@ -1,5 +1,13 @@
 #include "event_delegate.h"
 
+/**
+  * Конструктор класса делегата
+  *
+  * @param event   - указатель на список событий
+  * @param react   - указатель на список реакций
+  * @param chanell - указатель на список каналов
+  * @param parent  - указатель на объект предок
+  */
 EventDelegate::EventDelegate(QList<QString> *event, QList<QString> *react, QList<QString> *chanell, QObject *parent):
         QItemDelegate(parent)
 {
