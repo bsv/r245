@@ -160,3 +160,31 @@ QTime Utils::secToTime(int time_sec)
 
     return QTime(hour, min, sec);
 }
+
+bool Utils::openFile(QFile * file, QFlags<QIODevice::OpenModeFlag> mode)
+{
+    if(file == NULL)
+        return false;
+
+    if(!file->open(mode))
+    {
+        qDebug() << "Error: open file";
+        return false;
+    }
+
+    return true;
+}
+
+bool Utils::closeFile(QFile *file)
+{
+    if(file != NULL)
+    {
+        if(file->isOpen())
+        {
+            file->close();
+        }
+        return true;
+    }
+
+    return false;
+}

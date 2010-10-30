@@ -41,7 +41,7 @@
          </property>
         </widget>
        </item>
-       <item row="0" column="2">
+       <item row="0" column="3">
         <widget class="QPushButton" name="settings_button">
          <property name="text">
           <string>Открыть</string>
@@ -62,14 +62,14 @@
          </property>
         </widget>
        </item>
-       <item row="1" column="2">
+       <item row="1" column="3">
         <widget class="QPushButton" name="log_button">
          <property name="text">
           <string>Открыть</string>
          </property>
         </widget>
        </item>
-       <item row="2" column="0" colspan="3">
+       <item row="2" column="0" colspan="4">
         <widget class="QTabWidget" name="settings_tabs">
          <property name="currentIndex">
           <number>0</number>
@@ -136,7 +136,7 @@
          </widget>
         </widget>
        </item>
-       <item row="3" column="0" colspan="3">
+       <item row="3" column="0" colspan="4">
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
           <spacer name="horizontalSpacer_3">
@@ -166,6 +166,20 @@
           </widget>
          </item>
         </layout>
+       </item>
+       <item row="0" column="2">
+        <widget class="QPushButton" name="new_settings_btn">
+         <property name="text">
+          <string>Создать</string>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="2">
+        <widget class="QPushButton" name="new_log_btn">
+         <property name="text">
+          <string>Создать</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

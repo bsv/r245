@@ -46,6 +46,8 @@ private slots:
     void slotFindEvent();
     void slotEventDataChanged(QStandardItem * item);
     void slotAliasChanged(QStandardItem * item);
+    void slotNewLog();
+    void slotNewSettings();
 };
 
 

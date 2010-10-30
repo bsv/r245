@@ -32,7 +32,7 @@ typedef struct struct_r245_dev_info
 /**
   * Структура, хранящая информацию о настройках устройства считывателя.
   */
-typedef struct struct_dev_info
+typedef struct struct_dev_info_qt
 {
     unsigned int id;
     bool active;

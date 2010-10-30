@@ -1,5 +1,5 @@
 QT = gui core xml
-CONFIG += qt qaxcontainer warn_on debug
+CONFIG += qt warn_on release static
 DESTDIR = bin
 OBJECTS_DIR = build
 MOC_DIR = build

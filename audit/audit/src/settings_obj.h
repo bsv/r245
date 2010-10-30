@@ -11,17 +11,29 @@
 #include "global.h"
 #include "monitor.h"
 
-// Константы для активации каналов
-// Если оба канала активны, то поле HEAD_DEV_INFO_CHANNEL
-// в dev_model имеет значение (CHANNEL_ACT_1 | CHANNEL_ACT_2)
+/** @name Константы для активации каналов
+  * Если оба канала активны, то поле HEAD_DEV_INFO_CHANNEL
+  * в dev_model имеет значение (CHANNEL_ACT_1 | CHANNEL_ACT_2)
+  * @{
+  */
 #define CHANNEL_ACT_1 1
 #define CHANNEL_ACT_2 2
+/** @}*/
 
+/**
+  * Класс содержит необходимый интерфейс для
+  * взаимодействия с настройками и  конфигурационными
+  * файлами программы
+  */
 class SettingsObj : public QObject
 {
     Q_OBJECT
 public:
 
+    /**
+      * Элементы перечисления соответствуют
+      * идентификаторам моделей, которые содержит класс
+      */
     enum TypeModel {
         TagModel,
         DevNameModel,
@@ -32,12 +44,21 @@ public:
         EventModelProxy
     };
 
+    /**
+      * Элементы перечисления соответствуют
+      * номерам колонок в моделях настроек синонимов
+      * для названий меток и устройств (tag_model, dev_name_model)
+      */
     enum AliasTable
     {
         AliasId,
         AliasName
     };
 
+    /**
+      * Элементы перечисления соответствуют
+      * номерам колонок в модели dev_model
+      */
     enum DevInfoAttr
     {
        // Num,
@@ -47,6 +68,10 @@ public:
         Desc
     };
 
+    /**
+      * Элементы перечисления соответствуют
+      * номерам колонок в модели event_model
+      */
     enum EventAttr
     {
         EvNameDev,
@@ -59,8 +84,12 @@ public:
         EvIdTag
     };
 
+    /** @name Конструкторы/деструкторы
+      * @{
+      */
     SettingsObj();
     ~SettingsObj();
+    /** @} */
 
     bool openSettingFile(QString file_name);
     bool openLogFile(QString file_name, Monitor * monitor);
@@ -89,20 +118,42 @@ public:
     void saveSetings();
     void addLogNode(QString dev_num, R245_TRANSACT * trans);
 private:
+
+    /// Указатель на файл настроек
     QFile * fsettings;
+
+    /// Указатель на файл журнала
     QFile * flog;
+
+    /// Указатель на модель синонимов меток
     QStandardItemModel * tag_model;
+
+    /// Указатель на модель отображения результатов поиска по меткам
     QSortFilterProxyModel * tag_model_proxy;
+
+    /// Указатель на модель синонимов для устройств
     QStandardItemModel * dev_name_model;
+
+    /// Указатель на модель отображения результатов поиска по устройствам
     QSortFilterProxyModel * dev_name_model_proxy;
+
+    /// Указатель на модель, хранящую информацию о устройствах
     QStandardItemModel * dev_model;
+
+    /// Указатель на модель, хранящую настройку событий
     QStandardItemModel * event_model;
+
+    /// Указатель на модель отображения результатов поиска по модели настроек событий
     QSortFilterProxyModel * event_model_proxy;
+
+    /** Список структур DEV_INFO, хранящий информацию о подключенных устройствах
+      * (в том числе и настройки для устройств, загруженных их файла)
+      */
     QList<DEV_INFO> dev_settings;
+
+    /// Текстовый поток для удобства осуществления файловых операций
     QTextStream * log_stream;
 
-    bool openFile(QFile * file, QFlags <QIODevice::OpenModeFlag> mode);
-    bool closeFile(QFile * file);
     void readSettingNodes(const QDomNode &node);
     QDomElement makeElement(QDomDocument  & dom_doc,
                             const QString & name,

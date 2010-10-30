@@ -54,6 +54,8 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(find_dev_le, SIGNAL(textChanged(QString)), SLOT(slotFindDevName()));
     connect(find_event_le, SIGNAL(textChanged(QString)), SLOT(slotFindEvent()));
     connect(synch_time_button, SIGNAL(clicked()), SLOT(slotSynchTime()));
+    connect(new_log_btn, SIGNAL(clicked()), SLOT(slotNewLog()));
+    connect(new_settings_btn, SIGNAL(clicked()), SLOT(slotNewSettings()));
 
     QStandardItemModel * event_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::EventModel);
     connect(event_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotEventDataChanged(QStandardItem*)));
@@ -62,6 +64,57 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     QStandardItemModel * dev_name_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::DevNameModel);
     connect(tag_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
     connect(dev_name_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
+}
+
+void SettingsWindow::slotNewLog()
+{
+
+    QString file_path = QFileDialog::getSaveFileName(0, "Создание файла истории", "", "*.xml");
+
+    if(!file_path.isEmpty())
+    {
+        log_le->setText(file_path);
+        QFile file(file_path);
+
+        if(utils.openFile(&file, QIODevice::WriteOnly))
+        {
+            QTextStream text_stream(&file);
+            text_stream << "<log>\n";
+            text_stream << "</log>";
+
+        }
+
+        utils.closeFile(&file);
+        set_obj->openLogFile(file_path, monitor_obj);
+
+    } else
+    {
+        log_le->setText("");
+    }
+}
+
+void SettingsWindow::slotNewSettings()
+{
+    QString file_path = QFileDialog::getSaveFileName(0, "Создание файла настроек", "", "*.xml");
+
+    if(!file_path.isEmpty())
+    {
+        settings_le->setText(file_path);
+        QFile file(file_path);
+
+        if(utils.openFile(&file, QIODevice::WriteOnly))
+        {
+            QTextStream text_stream(&file);
+            text_stream << "<settings>\n";
+            text_stream << "</settings>";
+        }
+
+        utils.closeFile(&file);
+        set_obj->openSettingFile(file_path);
+    } else
+    {
+        settings_le->setText("");
+    }
 }
 
 void SettingsWindow::slotAliasChanged(QStandardItem *item)
@@ -463,7 +516,6 @@ void SettingsWindow::openFile(QLineEdit * le, QString caption)
     {
         le->setText("");
     }
-
 }
 
 SettingsWindow::~SettingsWindow()

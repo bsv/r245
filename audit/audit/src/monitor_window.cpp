@@ -1,6 +1,5 @@
 #include "monitor_window.h"
 #include "global.h"
-#include <QAxWidget>
 
 /**
   * @param set - указатель на объект, отвечающий за настройки приложения.

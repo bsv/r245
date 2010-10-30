@@ -19,7 +19,6 @@
 #include <QPainter>
 #include <QFileDialog>
 #include <QProgressDialog>
-#include <QAxObject>
 #include "settings_obj.h"
 #include "monitor.h"
 #include "ui_monitor_window.h"
@@ -76,7 +75,6 @@ private:
 
     static void printThreadFunc(QTextDocument * qdoc, QPrinter * printer);
 
-    void initMas();
     void printMonitor(QString file_path);
     void setFilter();
 private slots:

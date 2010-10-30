@@ -37,6 +37,8 @@ public:
     int timeToSec(QTime time);
     QTime secToTime(int time_sec);
     void showMessage(QMessageBox::Icon icon, QString header, QString msg);
+    bool openFile(QFile * file, QFlags<QIODevice::OpenModeFlag> mode);
+    bool closeFile(QFile *file);
 
     // Import functions from libr245dll.dll
     /** @name Определение имен функций, импортируемых из библиотеки libr245dll.dll

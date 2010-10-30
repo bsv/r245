@@ -51,8 +51,24 @@ int main(int argc, char ** argv)
     QCoreApplication::setApplicationName("R245 monitor");
 
     QApplication app( argc, argv );
-    MainWindow win;
-    win.show();
 
-    return app.exec();
+    if(!QFile::exists("r245.dll"))
+    {
+        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека r245.dll");
+    } else if(!QFile::exists("ftd2xx.dll"))
+    {
+        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека ftd2xx.dll");
+    } else if(utils.loadLibrary("r245.dll"))
+    {
+        MainWindow win;
+        win.show();
+
+        return app.exec();
+    } else
+    {
+        utils.showMessage(QMessageBox::Warning, "Ошибка", "Не удается загрузить библиотеку r245.dll");
+        return 1;
+    }
+
+    return 0;
 }

@@ -37,6 +37,9 @@ SettingsObj::SettingsObj()
     dev_model = new QStandardItemModel();
 }
 
+/**
+  * Функция инициализации моделей, хранящих данные о настройках
+  */
 void SettingsObj::initSetModels()
 {
     tag_model->clear();
@@ -62,6 +65,12 @@ void SettingsObj::initSetModels()
     dev_settings.clear();
 }
 
+/**
+  * Установка параметров поиска для моделей
+  *
+  * @param ex - регулярное выражения для поиска
+  * @param type_model - тип модели, по которой необходимо осуществить поиск
+  */
 void SettingsObj::setFilterWildCard(QString ex, TypeModel type_model)
 {
     switch(type_model)
@@ -80,9 +89,16 @@ void SettingsObj::setFilterWildCard(QString ex, TypeModel type_model)
     }
 }
 
+
+/**
+  * Открытие файла настроек
+  * @param file_name - путь к файлу настроек
+  *
+  * @return true в случае удачной операции открытия
+  */
 bool SettingsObj::openSettingFile(QString file_name)
 {
-    if(closeFile(fsettings))
+    if(utils.closeFile(fsettings))
     {
         delete fsettings;
         fsettings = NULL;
@@ -94,23 +110,29 @@ bool SettingsObj::openSettingFile(QString file_name)
 
     QDomDocument dom_doc;
 
-    if(openFile(fsettings, QIODevice::ReadOnly))
+    if(utils.openFile(fsettings, QIODevice::ReadOnly))
     {
         if(dom_doc.setContent(fsettings))
         {
             QDomElement dom_el = dom_doc.documentElement();
             readSettingNodes(dom_el);
         }
-        closeFile(fsettings);
+        utils.closeFile(fsettings);
         return true;
     }
 
     return false;
 }
 
+/**
+  * Открытие файла журнала
+  * @param file_name - путь к файлу журнала
+  *
+  * @return true в случае удачной операции открытия
+  */
 bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
 {
-    if(closeFile(flog))
+    if(utils.closeFile(flog))
     {
         delete flog;
         flog = NULL;
@@ -119,7 +141,7 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
 
     flog = new QFile(file_name);
 
-    if(openFile(flog, QIODevice::ReadOnly))
+    if(utils.openFile(flog, QIODevice::ReadOnly))
     {
         qint64 line_ctr = 0;
 
@@ -130,7 +152,7 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
             line_ctr++;
         }
 
-        closeFile(flog);
+        utils.closeFile(flog);
 
         TransParser tparser(line_ctr, monitor, this);
         QXmlInputSource source(flog);
@@ -147,12 +169,12 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
         }
     }
 
-    if(closeFile(flog))
+    if(utils.closeFile(flog))
     {
         qDebug("Close flog");
     }
 
-    if(openFile(flog, QIODevice::Append))
+    if(utils.openFile(flog, QIODevice::Append))
     {
         qDebug("Open flog OK");
         flog->seek(flog->size() - QString("</log>\n").size());
@@ -167,6 +189,13 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
     return true;
 }
 
+/**
+  * Добавление записи в файл журнала
+  *
+  * @param dev_num - идентификатор устройства
+  * @param trans - ссылка на структуру,
+  *   содержащую информацию о произошедшем событии, регистрируемое в журнале
+  */
 void SettingsObj::addLogNode(QString dev_num, R245_TRANSACT * trans)
 {
     if(log_stream != NULL)
@@ -187,6 +216,10 @@ void SettingsObj::addLogNode(QString dev_num, R245_TRANSACT * trans)
     }
 }
 
+/**
+  * Функция получает информацию о подключенных устройствах.
+  * Полученная информация помещается в модель dev_model
+  */
 void SettingsObj::readDevInfo()
 {
     R245_DEV_INFO info;
@@ -213,6 +246,13 @@ void SettingsObj::readDevInfo()
     }
 }
 
+/**
+  * Считывание настроек из файла. Информация о настройках помещается
+  * в соответствующие модели tag_model, dev_name_model, event_model.
+  * Информация о настройках устройств сохраняется в списке dev_settings.
+  *
+  * @param node - ссылка на элемент в структуре xml, содержащий настройки
+  */
 void SettingsObj::readSettingNodes(const QDomNode &node)
 {
     QDomNode dom_node = node.firstChild();
@@ -321,6 +361,13 @@ void SettingsObj::readSettingNodes(const QDomNode &node)
     }
 }
 
+/**
+  * Получение ссылки на модель
+  *
+  * @param type_model - тип запрашиваемой модели
+  *
+  * @return возвращает указатель на запрашиваемую модель
+  */
 QAbstractItemModel * SettingsObj::getModel(TypeModel type_model)
 {
     switch(type_model)
@@ -343,6 +390,15 @@ QAbstractItemModel * SettingsObj::getModel(TypeModel type_model)
     return NULL;
 }
 
+/**
+  * Добавление синонимов меток в структуру xml документа
+  *
+  * @param dom_doc - документ, куда следует поместить данные
+  * @param id - ссылка на идентификатор метки
+  * @param name - ссылка на синоним метки
+  *
+  * @return возвращает QDomElement, пригодный для вставки в структуру xml.
+  */
 QDomElement SettingsObj::addTagToDom(QDomDocument dom_doc,
                                 const QString &id,
                                 const QString &name)
@@ -354,6 +410,15 @@ QDomElement SettingsObj::addTagToDom(QDomDocument dom_doc,
     return dom_element;
 }
 
+/**
+  * Добавление синонимов устройств в структуру xml документа
+  *
+  * @param dom_doc - документ, куда следует поместить данные
+  * @param id - ссылка на идентификатор устройства
+  * @param name - ссылка на синоним устройства
+  *
+  * @return возвращает QDomElement, пригодный для вставки в структуру xml.
+  */
 QDomElement SettingsObj::addDevNameToDom(QDomDocument dom_doc, const QString &id, const QString &name)
 {
     QDomElement dom_element = makeElement(dom_doc, "dev_name", id, "");
@@ -363,6 +428,14 @@ QDomElement SettingsObj::addDevNameToDom(QDomDocument dom_doc, const QString &id
     return dom_element;
 }
 
+/**
+  * Добавление настроек устройств в структуру xml документа
+  *
+  * @param dom_doc - документ, куда следует поместить данные
+  * @param dev - ссылка на структуру DEV_INFO.
+  *
+  * @return возвращает QDomElement, пригодный для вставки в структуру xml.
+  */
 QDomElement SettingsObj::addDevToDom(QDomDocument dom_doc, const DEV_INFO &dev)
 {
     QDomElement dom_element = makeElement(dom_doc, "dev", QString().setNum(dev.id), "");
@@ -377,6 +450,14 @@ QDomElement SettingsObj::addDevToDom(QDomDocument dom_doc, const DEV_INFO &dev)
     return dom_element;
 }
 
+/**
+  * Добавление информации о настроках событий в структуру xml документа
+  *
+  * @param dom_doc - документ, куда следует поместить данные
+  * @param row - номер строки в модели event_model, откуда следует взять данные
+  *
+  * @return возвращает QDomElement, пригодный для вставки в структуру xml.
+  */
 QDomElement SettingsObj::addEventToDom(QDomDocument dom_doc, int row)
 {
     QDomElement dom_element = makeElement(dom_doc, "event_node", "", "");
@@ -401,34 +482,17 @@ QDomElement SettingsObj::addEventToDom(QDomDocument dom_doc, int row)
     return dom_element;
 }
 
-bool SettingsObj::openFile(QFile * file, QFlags<QIODevice::OpenModeFlag> mode)
-{
-    if(file == NULL)
-        return false;
 
-    if(!file->open(mode))
-    {
-        qDebug() << "Error: open file";
-        return false;
-    }
-
-    return true;
-}
-
-bool SettingsObj::closeFile(QFile *file)
-{
-    if(file != NULL)
-    {
-        if(file->isOpen())
-        {
-            file->close();
-        }
-        return true;
-    }
-
-    return false;
-}
-
+/**
+  * Делает активным или неактивным выбранное устройство.
+  * С активным устройством возможно осуществлять обмен данными.
+  *
+  * @param row - номер строки из модели dev_model, который указывает какое устройство
+  *     следует акивировать/деактивировать.
+  * @param active - если true, то активируем устройство, если false, то даективируем
+  *
+  * @return возвращает код результата выполнения операции. R245_OK - если всё хорошо.
+  */
 short int SettingsObj::setActiveDev(int row, bool active)
 {
     QBrush color;
@@ -565,7 +629,7 @@ short int SettingsObj::setTimeDev(int row, short int time, bool time1)
 
 void SettingsObj::saveSetings()
 {
-    if(openFile(fsettings, QIODevice::WriteOnly))
+    if(utils.openFile(fsettings, QIODevice::WriteOnly))
     {
         QString id, name;
 
@@ -619,7 +683,7 @@ void SettingsObj::saveSetings()
         }
 
         QTextStream(fsettings) << doc.toString();
-        closeFile(fsettings);
+        utils.closeFile(fsettings);
     }
 
 }
@@ -793,9 +857,9 @@ SettingsObj::~SettingsObj()
         *log_stream << "</log>\n";
     }
 
-    if(closeFile(fsettings))
+    if(utils.closeFile(fsettings))
         delete fsettings;
-    if(closeFile(flog))
+    if(utils.closeFile(flog))
         delete flog;
 
     delete log_stream;
