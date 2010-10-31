@@ -137,20 +137,6 @@ void MonitorWindow::printMonitor(QString file_path)
         QTextStream stream(&file);
         stream << data;
         file.close();
-
-        // В том, что закомментировано не работает SaveAs
-
-        /*QAxObject* excel = new QAxObject( "Excel.Application", this ); //получаем указатьтель на excel
-        QAxObject *workbooks = excel->querySubObject( "Workbooks" ); //получаем указатель на список книг
-        QAxObject *workbook = workbooks->querySubObject( "Open(const QString&)", file_path);
-        QAxObject * worksheet = workbook->querySubObject("Worksheets(int)", 1);
-
-        qDebug() << file_path.remove(".csv");
-        worksheet->dynamicCall("SaveAs (const QString&)", QString(file_path.remove(".csv")));
-        //excel->setProperty("DisplayAlerts", 1);
-        workbook->dynamicCall("Close (Boolean)", false);
-
-        excel->dynamicCall("Quit (void)");*/
     }
 }
 

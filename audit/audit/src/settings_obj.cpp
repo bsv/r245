@@ -89,7 +89,6 @@ void SettingsObj::setFilterWildCard(QString ex, TypeModel type_model)
     }
 }
 
-
 /**
   * Открытие файла настроек
   * @param file_name - путь к файлу настроек
@@ -463,7 +462,7 @@ QDomElement SettingsObj::addEventToDom(QDomDocument dom_doc, int row)
     QDomElement dom_element = makeElement(dom_doc, "event_node", "", "");
 
     dom_element.appendChild(makeElement(dom_doc, "id_dev", "", event_model->index(row, EvIdDev).data().toString()));
-    dom_element.appendChild(makeElement(dom_doc, "name", "", event_model->index(row, EvName).data().toString()));
+    dom_element.appendChild(makeElement(dom_doc, "name", "", event_model->index(row, EvName).data().toString().toUtf8()));
     dom_element.appendChild(makeElement(dom_doc, "id_tag", "", event_model->index(row, EvIdTag).data().toString()));
     dom_element.appendChild(makeElement(dom_doc, "channel", "", event_model->index(row, EvChanell).data().toString()));
     dom_element.appendChild(makeElement(dom_doc, "event", "", event_model->index(row, EvEvent).data().toString().toUtf8()));
@@ -645,7 +644,7 @@ void SettingsObj::saveSetings()
         for(int row = 0; row < tag_model->rowCount(); ++row)
         {
             id = tag_model->data(tag_model->index(row, 0)).toString();
-            name = tag_model->data(tag_model->index(row, 1)).toString();
+            name = tag_model->data(tag_model->index(row, 1)).toString().toUtf8();
 
             tag_dom.appendChild(addTagToDom(doc, id, name));
         }
@@ -657,7 +656,7 @@ void SettingsObj::saveSetings()
         for(int row = 0; row < dev_name_model->rowCount(); ++row)
         {
             id = dev_name_model->data(dev_name_model->index(row, 0)).toString();
-            name = dev_name_model->data(dev_name_model->index(row, 1)).toString();
+            name = dev_name_model->data(dev_name_model->index(row, 1)).toString().toUtf8();
 
             dev_name_dom.appendChild(addDevNameToDom(doc, id, name));
         }

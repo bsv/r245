@@ -1,0 +1,50 @@
+\documentclass[a4paper,12pt,fleqn]{article}
+\usepackage[a4paper,mag=1000,includefoot,left=2cm,right=2cm,top=2.5cm,bottom=2cm]{geometry}
+\usepackage[warn]{mathtext}
+\usepackage[russian]{babel}
+\usepackage{ucs}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{amsmath}
+\usepackage{tabularx}
+\usepackage{cite}
+\usepackage{makecell}
+\usepackage{booktabs}
+\usepackage{pgfplotstable}
+\usepackage{indentfirst} %Отступ в абзацах
+\usepackage{doc}
+% title
+\author{Авдюшкин Василий}
+\authortwo{Быковский Сергей}
+\theme{Программа AUDIT}
+\title{Руководство пользователя}
+\begin{document}
+% % Title here
+\pagestyle{empty}
+\maketitle
+\newpage
+\pagestyle{plain}
+\tableofcontents
+\newpage
+
+\section{О программе}
+
+\input{about}
+
+\section{Главное окно}
+
+\input{main_window}
+
+\section{Окно настроек}
+
+\input{settings_window}
+
+\section{Окно монитора}
+
+\input{monitor_window}
+
+\section{Возможные ошибки}
+
+\input{error}
+
+\end{document}
