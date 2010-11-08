@@ -111,7 +111,10 @@ bool SettingsObj::openSettingFile(QString file_name)
 
     if(utils.openFile(fsettings, QIODevice::ReadOnly))
     {
-        if(dom_doc.setContent(fsettings))
+        QTextStream ts(fsettings);
+        ts.setCodec("Windows-1251");
+
+        if(dom_doc.setContent(ts.readAll()/*fsettings*/))
         {
             QDomElement dom_el = dom_doc.documentElement();
             readSettingNodes(dom_el);
@@ -266,7 +269,7 @@ void SettingsObj::readSettingNodes(const QDomNode &node)
                 {
                     QDomElement child_el = dom_node.firstChildElement();
                     addTagToModel(dom_el.attribute("id", ""), child_el.text());
-                    qDebug()<< "set tag";
+                    //qDebug()<< "set tag";
                 } else if(dom_el.tagName() == "dev_name")
                 {
                     QDomElement child_el = dom_node.firstChildElement();
@@ -462,11 +465,11 @@ QDomElement SettingsObj::addEventToDom(QDomDocument dom_doc, int row)
     QDomElement dom_element = makeElement(dom_doc, "event_node", "", "");
 
     dom_element.appendChild(makeElement(dom_doc, "id_dev", "", event_model->index(row, EvIdDev).data().toString()));
-    dom_element.appendChild(makeElement(dom_doc, "name", "", event_model->index(row, EvName).data().toString().toUtf8()));
+    dom_element.appendChild(makeElement(dom_doc, "name", "", event_model->index(row, EvName).data().toString()));
     dom_element.appendChild(makeElement(dom_doc, "id_tag", "", event_model->index(row, EvIdTag).data().toString()));
     dom_element.appendChild(makeElement(dom_doc, "channel", "", event_model->index(row, EvChanell).data().toString()));
-    dom_element.appendChild(makeElement(dom_doc, "event", "", event_model->index(row, EvEvent).data().toString().toUtf8()));
-    dom_element.appendChild(makeElement(dom_doc, "react", "", event_model->index(row, EvReact).data().toString().toUtf8()));
+    dom_element.appendChild(makeElement(dom_doc, "event", "", event_model->index(row, EvEvent).data().toString()));
+    dom_element.appendChild(makeElement(dom_doc, "react", "", event_model->index(row, EvReact).data().toString()));
 
     int r = 0;
     int g = 0;
@@ -633,6 +636,8 @@ void SettingsObj::saveSetings()
         QString id, name;
 
         QDomDocument doc("settings");
+
+
         QDomElement root_el = doc.createElement("settings");
 
         doc.appendChild(root_el);
@@ -644,7 +649,7 @@ void SettingsObj::saveSetings()
         for(int row = 0; row < tag_model->rowCount(); ++row)
         {
             id = tag_model->data(tag_model->index(row, 0)).toString();
-            name = tag_model->data(tag_model->index(row, 1)).toString().toUtf8();
+            name = tag_model->data(tag_model->index(row, 1)).toString();
 
             tag_dom.appendChild(addTagToDom(doc, id, name));
         }
@@ -656,7 +661,7 @@ void SettingsObj::saveSetings()
         for(int row = 0; row < dev_name_model->rowCount(); ++row)
         {
             id = dev_name_model->data(dev_name_model->index(row, 0)).toString();
-            name = dev_name_model->data(dev_name_model->index(row, 1)).toString().toUtf8();
+            name = dev_name_model->data(dev_name_model->index(row, 1)).toString();
 
             dev_name_dom.appendChild(addDevNameToDom(doc, id, name));
         }
@@ -681,7 +686,11 @@ void SettingsObj::saveSetings()
             event_dom.appendChild(addEventToDom(doc, row));
         }
 
-        QTextStream(fsettings) << doc.toString();
+        QTextStream text_settings(fsettings);
+
+        text_settings.setCodec("Windows-1251");
+
+        text_settings<< doc.toString();
         utils.closeFile(fsettings);
     }
 
