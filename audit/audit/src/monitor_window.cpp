@@ -224,39 +224,42 @@ void MonitorWindow::slotUpdateTrans()
     {
         R245_TRANSACT trans;
         short int status = 0;
+        QStandardItemModel * model = (QStandardItemModel *) set_obj->getModel(SettingsObj::DevModel);
         int dev_count = set_obj->getModel(SettingsObj::DevModel)->rowCount();
         short trans_ctr = 0;
 
-
-        // !!! Исправить цикл идет по всем устройствам, надо только по подключенным и активным
         for(int dev_num = 0; dev_num < dev_count; dev_num++)
         {
-            while(!(status = utils.R245_GetTransact(dev_num, &trans)))
+            for(int dev_row = 0; dev_row < model->item(dev_num)->rowCount(); dev_row++)
             {
-                // Запрещаем очищать модель когда идет считывание транзакций
-                clear_button->setEnabled(false);
-
-                QString tag_name = "", dev_name = "";
-                QAbstractItemModel * tag_model = set_obj->getModel(SettingsObj::TagModel);
-                QAbstractItemModel * dev_name_model = set_obj->getModel(SettingsObj::DevNameModel);
-
-                utils.findAlias(tag_model, QString().setNum(trans.tid), &tag_name);
-                utils.findAlias(dev_name_model, QString().setNum(dev_num), &dev_name);
-
-                monitor->addTransToModel(QString().setNum(dev_num), &trans, tag_name, dev_name);
-                set_obj->addLogNode(QString().setNum(dev_num), &trans); // add node to log file
-                eventHandler(QString().setNum(dev_num), &trans, tag_name, dev_name);
-
-                monitor->update(); // При каждой транзакции сортирует всю таблицу (это плохо)
-
-                if(trans_ctr == MAX_TRANS_FOR_TIMER_INT)
+                int addr = model->item(dev_num)->child(dev_row)->data(Qt::DisplayRole).toInt();
+                trans_ctr = 0;
+                while(!(status = utils.R245_GetTransact(dev_num, addr, &trans)))
                 {
-                    break; // выходит только из цикла while
-                           // с каждого устройства считываем
-                           // по MAX_TRANS_FOR_TIMER_INT транзакций
-                }
+                    // Запрещаем очищать модель когда идет считывание транзакций
+                    clear_button->setEnabled(false);
 
-                trans_ctr++;
+                    //QString tag_name = "", dev_name = "";
+                    //QAbstractItemModel * tag_model = set_obj->getModel(SettingsObj::TagModel);
+                    //QAbstractItemModel * dev_name_model = set_obj->getModel(SettingsObj::DevNameModel);
+
+                    //utils.findAlias(tag_model, QString().setNum(trans.tid), &tag_name);
+                    //utils.findAlias(dev_name_model, QString().setNum(dev_num), &dev_name);
+
+                    monitor->addTransToModel(QString().setNum(dev_num), &trans, "", ""/*tag_name, dev_name*/);
+                    set_obj->addLogNode(QString().setNum(dev_num), &trans); // add node to log file
+                    //eventHandler(QString().setNum(dev_num), &trans, tag_name, dev_name);
+
+                    monitor->update(); // При каждой транзакции сортирует всю таблицу (это плохо)
+
+                    if(trans_ctr == MAX_TRANS_FOR_TIMER_INT)
+                    {
+                        break; // выходит только из цикла while
+                               // с каждого устройства считываем
+                               // по MAX_TRANS_FOR_TIMER_INT транзакций
+                    }
+                    trans_ctr++;
+                }
             }
         }
         clear_button->setEnabled(true);

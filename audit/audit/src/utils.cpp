@@ -40,6 +40,8 @@ bool Utils::loadLibrary(QString file_name)
     R245_GetChan = (GetChan) lib->resolve("R245_GetChan");
     R245_SetTimeRTC = (SetTimeRTC) lib->resolve("R245_SetTimeRTC");
     R245_SetDateRTC = (SetDateRTC) lib->resolve("R245_SetDateRTC");
+    R245_SetAddr = (SetAddr) lib->resolve("R245_SetAddr");
+    R245_ClearTrans = (ClearTrans) lib->resolve("R245_ClearTrans");
     
     return true;
 }
@@ -74,7 +76,7 @@ bool Utils::unloadLibrary()
     return false;
 }
 
-void Utils::findAlias(QAbstractItemModel * model, QString find_val, QString * alias)
+/*void Utils::findAlias(QAbstractItemModel * model, QString find_val, QString * alias)
 {
     *alias = "";
 
@@ -92,12 +94,16 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
 {
     QStandardItemModel * alias_model = alias_item->model();
     QStandardItem * item_model;
+    QString alias_id = "";
+    QString alias_name = "";
 
     int row_count = model->rowCount();
     int id_attr, name_attr;
 
     if(alias_model->objectName() == "tag_model")
     {
+        alias_id = alias_model->index(alias_item->row(), SettingsObj::AliasId).data().toString();
+        alias_name = alias_model->index(alias_item->row(), SettingsObj::AliasName).data().toString();
         if(model->objectName() == "monitor_model")
         {
             id_attr = Monitor::TagIdAttr;
@@ -108,8 +114,11 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
             name_attr = SettingsObj::EvNameTag;
         }
 
-    } else // dev_name_model
+    } else if(alias_model->objectName() == "dev_model")// dev_model
     {
+        alias_id = alias_item->parent()->child(alias_item->row(), SettingsObj::AliasId)->data(Qt::DisplayRole).toString();
+        alias_name = alias_item->parent()->child(alias_item->row(), SettingsObj::AliasName)->data(Qt::DisplayRole).toString();
+
         if(model->objectName() == "monitor_model")
         {
             id_attr = Monitor::DevNumAttr;
@@ -120,29 +129,30 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
             id_attr = SettingsObj::EvIdDev;
             name_attr = SettingsObj::EvNameDev;
         }
+    } else
+    {
+        showMessage(QMessageBox::Warning, "", "Смена псевдонимов не возможна");
+        return;
     }
 
     for(int row = 0; row < row_count; row++)
     {
         item_model = model->item(row, id_attr);
 
-        if(item_model->text() == alias_model->item(alias_item->row(), SettingsObj::AliasId)->text())
+        if(item_model->text() == alias_id)
         {
             if(clear)
             {
-
                 model->blockSignals(true); // чтобы не работали сигналы на изменение моделей (актуально для event_model)
-                model->item(row, name_attr)->setText(
-                        alias_model->item(alias_item->row(), SettingsObj::AliasId)->text());
+                model->item(row, name_attr)->setText(alias_id);
                 model->blockSignals(false);
             } else
             {
-                model->item(row, name_attr)->setText(
-                        alias_model->item(alias_item->row(), SettingsObj::AliasName)->text());
+                model->item(row, name_attr)->setText(alias_name);
             }
         }
     }
-}
+}*/
 
 int Utils::timeToSec(QTime time)
 {

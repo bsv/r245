@@ -26,12 +26,14 @@ private:
      QSettings settings;
 
      bool block_alias_change;
+
+    short int getDevCoord(QModelIndex index);
+    bool isReaderDev(QModelIndex index);
 private slots:
     void slotOpenSettings(bool dialog = true);
     void slotOpenLog(bool dialog = true);
     void slotAdd();
     void slotDelete();
-    void slotDevActive();
     void slotDevClick(QModelIndex qmi);
     void slotReadDevInfo();
     void slotDist1(int value);
@@ -41,13 +43,15 @@ private slots:
     void slotSaveSetings();
     void slotActChannel();
     void slotFindTag();
-    void slotFindDevName();
     void slotSynchTime();
     void slotFindEvent();
     void slotEventDataChanged(QStandardItem * item);
     void slotAliasChanged(QStandardItem * item);
     void slotNewLog();
     void slotNewSettings();
+    void slotAddDev(QModelIndex index);
+    void slotDeleteDev();
+    void slotDevDataChanged(QStandardItem* item);
 };
 
 

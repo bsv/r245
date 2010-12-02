@@ -52,13 +52,13 @@ int main(int argc, char ** argv)
 
     QApplication app( argc, argv );
 
-    if(!QFile::exists("r245.dll"))
+    /*if(!QFile::exists("libr245.dll"))
     {
-        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека r245.dll");
+        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека libr245.dll");
     } else if(!QFile::exists("ftd2xx.dll"))
     {
         utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека ftd2xx.dll");
-    } else if(utils.loadLibrary("r245.dll"))
+    } else*/ if(utils.loadLibrary("libr245.dll"))
     {
         MainWindow win;
         win.show();
@@ -66,7 +66,7 @@ int main(int argc, char ** argv)
         return app.exec();
     } else
     {
-        utils.showMessage(QMessageBox::Warning, "Ошибка", "Не удается загрузить библиотеку r245.dll");
+        utils.showMessage(QMessageBox::Warning, "Ошибка", "Не удается загрузить библиотеку libr245.dll");
         return 1;
     }
 

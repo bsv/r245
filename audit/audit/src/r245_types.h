@@ -9,6 +9,8 @@
 #ifndef R245_TYPES_H
 #define R245_TYPES_H
 
+#include <QString>
+
 /// Признак успешного завершения функций работы со считывателем
 #define R245_OK 0
 
@@ -34,13 +36,14 @@ typedef struct struct_r245_dev_info
   */
 typedef struct struct_dev_info_qt
 {
-    unsigned int id;
+    unsigned char addr;
     bool active;
     unsigned char channel;
     short int time1;
     unsigned char dist1;
     short int time2;
     unsigned char dist2;
+    QString name;
 } DEV_INFO;
 
 /**
@@ -80,24 +83,26 @@ typedef struct struct_rtc
 /** @name Определение типов функций, соответствующих функциям библиотеки libr245dll.dll
   * @{
   */
-typedef short int (*InitDev) (short int);
-typedef short int (*AuditEn) (unsigned char, unsigned char);
-typedef short int (*GetVersion) (void *, unsigned char, unsigned char *);
+typedef short int (*InitDev) (unsigned char);
+typedef short int (*AuditEn) (unsigned char, unsigned char, unsigned char);
+typedef short int (*GetVersion) (unsigned char, unsigned char, unsigned char *);
 typedef short int (*Init)();
-typedef short int (*GetDevInfo)(short int num_dev, R245_DEV_INFO *);
-typedef short int (*CloseDev) (short int);
+typedef short int (*GetDevInfo)(unsigned char, R245_DEV_INFO *);
+typedef short int (*CloseDev) (unsigned char);
 typedef short int (*CloseAllDev) ();
 typedef short int (*GetNumDevs) ();
-typedef short int (*GetNumTrans) (unsigned char, short unsigned int *);
-typedef short int (*GetTransact) (unsigned char, R245_TRANSACT *);
-typedef short int (*GetDamp) (unsigned char, unsigned char, unsigned char *);
-typedef short int (*SetDamp) (unsigned char, unsigned char, unsigned char);
-typedef short int (*GetTime) (unsigned char, unsigned char, short int *);
-typedef short int (*SetTime) (unsigned char, unsigned char, short int);
-typedef short int (*SetChan) (unsigned char, unsigned char, unsigned char);
-typedef short int (*GetChan) (unsigned char, unsigned char *);
-typedef short int (*SetTimeRTC) (unsigned char, R245_RTC *);
-typedef short int (*SetDateRTC) (unsigned char, R245_RTC *);
+typedef short int (*GetNumTrans) (unsigned char, unsigned char, short unsigned int *);
+typedef short int (*GetTransact) (unsigned char, unsigned char, R245_TRANSACT *);
+typedef short int (*GetDamp) (unsigned char, unsigned char, unsigned char, unsigned char *);
+typedef short int (*SetDamp) (unsigned char, unsigned char, unsigned char, unsigned char);
+typedef short int (*GetTime) (unsigned char, unsigned char, unsigned char, short int *);
+typedef short int (*SetTime) (unsigned char, unsigned char, unsigned char, short int);
+typedef short int (*SetChan) (unsigned char, unsigned char, unsigned char, unsigned char);
+typedef short int (*GetChan) (unsigned char, unsigned char, unsigned char *);
+typedef short int (*SetTimeRTC) (unsigned char, unsigned char, R245_RTC *);
+typedef short int (*SetDateRTC) (unsigned char, unsigned char, R245_RTC *);
+typedef short int (*SetAddr) (unsigned char, unsigned char);
+typedef short int (*ClearTrans) (unsigned char, unsigned char);
 /** @} */
 
 #endif // R245_TYPES_H

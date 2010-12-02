@@ -113,8 +113,8 @@ bool TransParser::endElement(const QString &namespaceURI, const QString &localNa
         //qDebug("READ TRANSACT");
 
         QString tag_name = "", dev_name = "";
-        utils.findAlias(set_obj->getModel(SettingsObj::TagModel),  QString().setNum(trans.tid), &tag_name);
-        utils.findAlias(set_obj->getModel(SettingsObj::DevNameModel), dev_num, &dev_name);
+        //utils.findAlias(set_obj->getModel(SettingsObj::TagModel),  QString().setNum(trans.tid), &tag_name);
+        //utils.findAlias(set_obj->getModel(SettingsObj::DevNameModel), dev_num, &dev_name);
 
         monitor_obj->addTransToModel(dev_num, &trans, tag_name, dev_name);
     }

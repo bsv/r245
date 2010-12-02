@@ -191,7 +191,7 @@ QAbstractItemModel * Monitor::getModel(bool proxy)
   * @param tag_model - ссылка на модель, хранящей данные о псевдонимах меток.
   * @param dev_name_model - ссылка на модель, хранящей данные о псевдонимах устройств.
   */
-void Monitor::updateAlias(QStandardItemModel * tag_model, QStandardItemModel * dev_name_model)
+/*void Monitor::updateAlias(QStandardItemModel * tag_model, QStandardItemModel * dev_name_model)
 {
     QStandardItem * dev_item, * tag_item;
 
@@ -245,7 +245,7 @@ void Monitor::updateAlias(QStandardItemModel * tag_model, QStandardItemModel * d
             monitor_model->item(row, DevNameAttr)->setText(dev_item->text());
         }
     }
-}
+}*/
 
 Monitor::~Monitor()
 {

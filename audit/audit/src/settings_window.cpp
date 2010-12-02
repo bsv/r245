@@ -26,7 +26,6 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     chanell_list << "1" << "2";
 
     tag_view->setModel(set_obj->getModel(SettingsObj::TagModelProxy));
-    dev_name_view->setModel(set_obj->getModel(SettingsObj::DevNameModelProxy));
     event_view->setModel(set_obj->getModel(SettingsObj::EventModelProxy));
     dev_view->setModel(set_obj->getModel(SettingsObj::DevModel));
 
@@ -43,7 +42,6 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(find_dev_button, SIGNAL(clicked()), SLOT(slotReadDevInfo()));
     connect(cancel_button, SIGNAL(clicked()), SLOT(close()));
     connect(dev_view, SIGNAL(clicked(QModelIndex)), SLOT(slotDevClick(QModelIndex)));
-    connect(act_dev_button, SIGNAL(clicked()), SLOT(slotDevActive()));
     connect(dist1_dial, SIGNAL(valueChanged(int)), SLOT(slotDist1(int)));
     connect(time1_edt, SIGNAL(timeChanged(QTime)), SLOT(slotTime1()));
     connect(dist2_dial, SIGNAL(valueChanged(int)), SLOT(slotDist2(int)));
@@ -51,19 +49,96 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(ch1_button, SIGNAL(clicked()), SLOT(slotActChannel()));
     connect(ch2_button, SIGNAL(clicked()), SLOT(slotActChannel()));
     connect(find_tag_le, SIGNAL(textChanged(QString)), SLOT(slotFindTag()));
-    connect(find_dev_le, SIGNAL(textChanged(QString)), SLOT(slotFindDevName()));
     connect(find_event_le, SIGNAL(textChanged(QString)), SLOT(slotFindEvent()));
     connect(synch_time_button, SIGNAL(clicked()), SLOT(slotSynchTime()));
     connect(new_log_btn, SIGNAL(clicked()), SLOT(slotNewLog()));
     connect(new_settings_btn, SIGNAL(clicked()), SLOT(slotNewSettings()));
+    connect(dev_view, SIGNAL(doubleClicked(QModelIndex)), SLOT(slotAddDev(QModelIndex)));
+    connect(del_dev_button, SIGNAL(clicked()), SLOT(slotDeleteDev()));
 
     QStandardItemModel * event_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::EventModel);
     connect(event_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotEventDataChanged(QStandardItem*)));
 
     QStandardItemModel * tag_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::TagModel);
-    QStandardItemModel * dev_name_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::DevNameModel);
+    QStandardItemModel * dev_model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevModel);
+
     connect(tag_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
-    connect(dev_name_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
+    connect(dev_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotDevDataChanged(QStandardItem*)));
+    connect(set_obj, SIGNAL(sigAddReader(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
+}
+
+
+void SettingsWindow::slotDevDataChanged(QStandardItem * item)
+{
+    item->model()->blockSignals(true);
+
+    if(item->column() == SettingsObj::Addr)
+    {
+        bool is_num = false;
+        int addr = item->data(Qt::DisplayRole).toInt(&is_num);
+
+        if(!is_num)
+        {
+            utils.showMessage(QMessageBox::Warning, "Изменение адреса", "Адрес должен быть цифрой");
+            addr = set_obj->getFreeAddress(item->parent()->row());
+            item->setText(QString().setNum(addr));
+        } else
+        {
+            qDebug() << "ADDR" << addr;
+            if(!set_obj->isFreeAddress(item->parent()->row(), addr))
+            {
+                utils.showMessage(QMessageBox::Warning, "Изменение адреса", "Такой адрес уже имеется.");
+                addr = set_obj->getFreeAddress(item->parent()->row());
+                item->setText(QString().setNum(addr));
+            }
+        }
+
+    } else if(item->column() == SettingsObj::Name)
+    {
+        ulong id = item->parent()->data(Qt::DisplayRole).toULongLong();
+        int addr = item->parent()->child(item->row())->data(Qt::DisplayRole).toUInt();
+
+        DEV_INFO * dev = set_obj->getDevSettings(id, addr);
+        if(dev != NULL)
+        {
+            dev->name = item->text();
+            slotAliasChanged(item);
+        } else
+        {
+            item->setText("");
+        }
+    }
+
+    item->model()->blockSignals(false);
+}
+
+/**
+  * Получаем координаты элемента вида dev_view по его индексу
+  * Формат: 2 байта, старший байт - номер корневого элемента,
+  *     младший байт - номер дочернего элемента
+  *     (не равен 0 если index - это дочерний элемент)
+  */
+short int SettingsWindow::getDevCoord(QModelIndex index)
+{
+    short int dev_id = 0;
+
+    if(index.parent().isValid())
+    {
+        dev_id |= index.row() + 1; // 0 - корневой элемент
+        dev_id |= index.parent().row() << 8;
+    } else
+    {
+        dev_id |= index.row() << 8;
+    }
+
+    return dev_id;
+}
+
+bool SettingsWindow::isReaderDev(QModelIndex index)
+{
+    short int dev_id = getDevCoord(index);
+
+    return (dev_id & 0x00FF);
 }
 
 void SettingsWindow::slotNewLog()
@@ -81,7 +156,6 @@ void SettingsWindow::slotNewLog()
             QTextStream text_stream(&file);
             text_stream << "<log>\n";
             text_stream << "</log>";
-
         }
 
         utils.closeFile(&file);
@@ -121,14 +195,14 @@ void SettingsWindow::slotAliasChanged(QStandardItem *item)
 {
     if(!block_alias_change)
     {
-        utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
-        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventModel), false);
+        //utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
+        //utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventModel), false);
     }
 }
 
 void SettingsWindow::slotEventDataChanged(QStandardItem *item)
 {
-    if(item->column() == SettingsObj::EvNameDev || item->column() == SettingsObj::EvNameTag)
+    /*if(item->column() == SettingsObj::EvNameDev || item->column() == SettingsObj::EvNameTag)
     {
         int id_attr;
         SettingsObj::TypeModel model_type;
@@ -165,7 +239,7 @@ void SettingsWindow::slotEventDataChanged(QStandardItem *item)
             QString id_val = item->model()->item(item->row(), id_attr)->text();
             item->setText(id_val);
         }
-    }
+    }*/
 
 }
 
@@ -181,7 +255,7 @@ void SettingsWindow::slotFindTag()
 
 void SettingsWindow::slotSynchTime()
 {
-    R245_RTC rtc_data;
+    /*R245_RTC rtc_data;
     QAbstractItemModel * model = set_obj->getModel(SettingsObj::DevModel);
     short int dev_count = model->rowCount();
 
@@ -201,24 +275,19 @@ void SettingsWindow::slotSynchTime()
         if(!dev->active)
             utils.R245_InitDev(dev_num);
 
-        utils.R245_SetTimeRTC(dev_num, &rtc_data);
-        utils.R245_SetDateRTC(dev_num, &rtc_data);
+        utils.R245_SetTimeRTC(dev_num, 1, &rtc_data);
+        utils.R245_SetDateRTC(dev_num, 1, &rtc_data);
 
         if(!dev->active)
             utils.R245_CloseDev(dev_num);
-    }
-}
-
-void SettingsWindow::slotFindDevName()
-{
-    set_obj->setFilterWildCard(find_dev_le->text() + "*", SettingsObj::DevNameModelProxy);
+    }*/
 }
 
 void SettingsWindow::slotActChannel()
 {
-    int row = dev_view->selectionModel()->currentIndex().row();
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
 
-    if(row == -1)
+    if(!(index.isValid() && (isReaderDev(index))))
     {
         ch1_button->setChecked(false);
         ch2_button->setChecked(false);
@@ -229,15 +298,22 @@ void SettingsWindow::slotSaveSetings()
 {
     if(dev_tab->isVisible())
     {
-        int row = dev_view->selectionModel()->currentIndex().row();
-        if(row > -1)
+        QModelIndex index = dev_view->selectionModel()->currentIndex();
+
+        if(index.isValid() && isReaderDev(index))
         {
+            short int dev_coord = getDevCoord(index);
+            int row = (dev_coord & 0xFF00) >> 8;
+            int addr = dev_coord & 0x00FF;
+
             unsigned char channel = 0;
             unsigned short time1 = utils.timeToSec(time1_edt->time());
             unsigned short time2 = utils.timeToSec(time2_edt->time());
 
-            QAbstractItemModel * model = set_obj->getModel(SettingsObj::DevModel);
-            DEV_INFO * dev = set_obj->getDevSettings(model->data(model->index(row, SettingsObj::Id)).toInt());
+            QStandardItemModel * model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevModel);
+            ulong id = model->item(row)->data().toULongLong();
+
+            DEV_INFO * dev = set_obj->getDevSettings(id, addr);
 
             if(ch1_button->isChecked())
                 channel |= CHANNEL_ACT_1;
@@ -247,7 +323,7 @@ void SettingsWindow::slotSaveSetings()
 
             if(dev->channel != channel)
             {
-                if(set_obj->setChannelDev(row, channel) != R245_OK)
+                if(set_obj->setChannelDev(row, addr, channel) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка каналов",
@@ -256,7 +332,7 @@ void SettingsWindow::slotSaveSetings()
             }
             if(dev->time1 != time1)
             {
-                if(set_obj->setTimeDev(row, time1, true) != R245_OK)
+                if(set_obj->setTimeDev(row, addr, time1, true) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка времени реакции",
@@ -265,7 +341,7 @@ void SettingsWindow::slotSaveSetings()
             }
             if(dev->time2 != time2)
             {
-                if(set_obj->setTimeDev(row, time2, false) != R245_OK)
+                if(set_obj->setTimeDev(row, addr, time2, false) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка времени реакции",
@@ -274,7 +350,7 @@ void SettingsWindow::slotSaveSetings()
             }
             if(dev->dist1 != dist1_le->text().toInt())
             {
-                if(set_obj->setDistDev(row, dist1_le->text().toInt(), true) != R245_OK)
+                if(set_obj->setDistDev(row, addr, dist1_le->text().toInt(), true) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка дальности считывания",
@@ -283,7 +359,7 @@ void SettingsWindow::slotSaveSetings()
             }
             if(dev->dist2 != dist2_le->text().toInt())
             {
-                if(set_obj->setDistDev(row, dist2_le->text().toInt(), false) != R245_OK)
+                if(set_obj->setDistDev(row, addr, dist2_le->text().toInt(), false) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка дальности считывания",
@@ -300,9 +376,9 @@ void SettingsWindow::slotSaveSetings()
 
 void SettingsWindow::slotDist1(int value)
 {
-    int row = dev_view->selectionModel()->currentIndex().row();
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
 
-    if(row > -1)
+    if(index.isValid() && isReaderDev(index))
     {
         dist1_le->setText(QString().setNum(value));
     } else
@@ -314,20 +390,21 @@ void SettingsWindow::slotDist1(int value)
 
 void SettingsWindow::slotTime1()
 {
-    int row = dev_view->selectionModel()->currentIndex().row();
 
-    if(row == -1)
+    qDebug() << "slot time 1";
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
+
+    if(!(index.isValid() && isReaderDev(index)))
     {
-        time1_edt->setTime(QTime().fromString("00:00:00"));
+        time1_edt->setTime(QTime().fromString(""));
     }
-
 }
 
 void SettingsWindow::slotDist2(int value)
 {
-    int row = dev_view->selectionModel()->currentIndex().row();
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
 
-    if(row > -1)
+    if(index.isValid() && isReaderDev(index))
     {
         dist2_le->setText(QString().setNum(value));
     } else
@@ -339,9 +416,9 @@ void SettingsWindow::slotDist2(int value)
 
 void SettingsWindow::slotTime2()
 {
-    int row = dev_view->selectionModel()->currentIndex().row();
+    QModelIndex index = dev_view->selectionModel()->currentIndex();;
 
-    if(row == -1)
+    if(!(index.isValid() && isReaderDev(index)))
     {
         time2_edt->setTime(QTime().fromString("00:00:00"));
     }
@@ -352,67 +429,72 @@ void SettingsWindow::slotReadDevInfo()
     set_obj->readDevInfo();
 }
 
-void SettingsWindow::slotDevClick(QModelIndex qmi)
+void SettingsWindow::slotAddDev(QModelIndex index)
 {
-    QAbstractItemModel * model = set_obj->getModel(SettingsObj::DevModel);
-    DEV_INFO * dev = set_obj->getDevSettings(model->data(model->index(qmi.row(), SettingsObj::Id)).toInt());
+    int row = index.row();
 
-    if(dev != NULL)
+    // Если выделен корневой элемент списка (устройство подкл. параллельно)
+    if((row != -1) && !isReaderDev(index))
     {
-
-        time1_edt->setTime(utils.secToTime(dev->time1));
-
-        time2_edt->setTime(utils.secToTime(dev->time2));
-
-        dist1_le->setText(QString().setNum(dev->dist1));
-        dist1_dial->setValue(dev->dist1);
-
-        dist2_le->setText(QString().setNum(dev->dist2));
-        dist2_dial->setValue(dev->dist2);
-
-        if(dev->channel & CHANNEL_ACT_1)
-            ch1_button->setChecked(true);
-        else
-            ch1_button->setChecked(false);
-
-        if(dev->channel & CHANNEL_ACT_2)
-            ch2_button->setChecked(true);
-        else
-            ch2_button->setChecked(false);
-
-        if(dev->active)
-        {
-            act_dev_button->setChecked(true);
-        } else
-        {
-            act_dev_button->setChecked(false);
-        }
+        dev_view->collapse(index);
+        set_obj->addReaderToModel(row);
     }
 }
 
-void SettingsWindow::slotDevActive()
-{
-    int row = dev_view->selectionModel()->currentIndex().row();
+void SettingsWindow::slotDeleteDev()
+{   
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
+    int row = index.row();
 
-    short int status = 1;
-
-    if(row > -1)
+    // Если выбран дочерний элемент (устройство считывателя)
+    if((row != -1) && isReaderDev(index))
     {
-        if(act_dev_button->isChecked())
+        set_obj->deleteReaderFromModel(index.parent().row(), row);
+    }
+}
+
+void SettingsWindow::slotDevClick(QModelIndex qmi)
+{
+    if(isReaderDev(qmi))
+    {
+        short int dev_coord = getDevCoord(qmi);
+        int row = (dev_coord & 0xFF00) >> 8;
+        int dev_row = (dev_coord & 0x00FF) - 1;
+
+        QStandardItemModel * model = (QStandardItemModel *) set_obj->getModel(SettingsObj::DevModel);
+
+        uint addr = model->item(row)->child(dev_row)->data(Qt::DisplayRole).toUInt();
+
+        DEV_INFO * dev = set_obj->getDevSettings(model->index(row, 0).data().toULongLong(), addr);
+
+        if(dev != NULL)
         {
-            status = set_obj->setActiveDev(row, true);
-        } else
-        {
-            status = set_obj->setActiveDev(row, false);
+
+            time1_edt->setTime(utils.secToTime(dev->time1));
+            time2_edt->setTime(utils.secToTime(dev->time2));
+            dist1_dial->setValue(dev->dist1);
+            dist2_dial->setValue(dev->dist2);
+
+            if(dev->channel & CHANNEL_ACT_1)
+                ch1_button->setChecked(true);
+            else
+                ch1_button->setChecked(false);
+
+            if(dev->channel & CHANNEL_ACT_2)
+                ch2_button->setChecked(true);
+            else
+                ch2_button->setChecked(false);
         }
     } else
     {
-        act_dev_button->setChecked(false);
-    }
-
-    if(status)
-    {
-        act_dev_button->setChecked(false);
+        time1_edt->setTime(QTime().fromString("00:00:00"));
+        time2_edt->setTime(QTime().fromString("00:00:00"));
+        ch1_button->setChecked(false);
+        ch2_button->setChecked(false);
+        dist1_le->setText("0");
+        dist1_dial->setValue(0);
+        dist2_le->setText("0");
+        dist2_dial->setValue(0);
     }
 }
 
@@ -422,10 +504,6 @@ void SettingsWindow::slotAdd()
     {
         find_tag_le->setText("");
         set_obj->addTagToModel();
-    } else if(dev_name_tab->isVisible())
-    {
-        find_dev_le->setText("");
-        set_obj->addDevNameToModel();
     } else if(event_tab->isVisible())
     {
         find_event_le->setText("");
@@ -442,10 +520,6 @@ void SettingsWindow::slotDelete()
     {
         table_view = tag_view;
         type_model = SettingsObj::TagModel;
-    } else if(dev_name_tab->isVisible())
-    {
-        table_view = dev_name_view;
-        type_model = SettingsObj::DevNameModel;
     } else if(event_tab->isVisible())
     {
         table_view = event_view;
@@ -459,8 +533,8 @@ void SettingsWindow::slotDelete()
         // column = 0 - без разницы чему оно равно. В utils.changeAlias по нему определяется тип модели данных.
         QStandardItem * item = ((QStandardItemModel *)set_obj->getModel(type_model))->item(row, 0);
 
-        utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
-        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventModel), true);
+        //utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
+        //utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventModel), true);
 
         set_obj->getModel(type_model)->removeRow(row);
     }
@@ -480,8 +554,8 @@ void SettingsWindow::slotOpenSettings(bool dialog)
             event_view->hideColumn(SettingsObj::EvIdTag);
             set_menu_tab->setTabEnabled(1, true);
 
-            monitor_obj->updateAlias((QStandardItemModel *)set_obj->getModel(SettingsObj::TagModel),
-                                     (QStandardItemModel *)set_obj->getModel(SettingsObj::DevNameModel));
+            /*monitor_obj->updateAlias((QStandardItemModel *)set_obj->getModel(SettingsObj::TagModel),
+                                     (QStandardItemModel *)set_obj->getModel(SettingsObj::DevNameModel));*/
             block_alias_change = false;
             return;
         }
@@ -501,8 +575,8 @@ void SettingsWindow::slotOpenLog(bool dialog)
         monitor_obj->update();
     }
 
-    monitor_obj->updateAlias((QStandardItemModel *)set_obj->getModel(SettingsObj::TagModel),
-                             (QStandardItemModel *)set_obj->getModel(SettingsObj::DevNameModel));
+    /*monitor_obj->updateAlias((QStandardItemModel *)set_obj->getModel(SettingsObj::TagModel),
+                             (QStandardItemModel *)set_obj->getModel(SettingsObj::DevNameModel));*/
 }
 
 void SettingsWindow::openFile(QLineEdit * le, QString caption)

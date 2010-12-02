@@ -36,11 +36,9 @@ public:
       */
     enum TypeModel {
         TagModel,
-        DevNameModel,
         DevModel,
         EventModel,
         TagModelProxy,
-        DevNameModelProxy,
         EventModelProxy
     };
 
@@ -61,11 +59,14 @@ public:
       */
     enum DevInfoAttr
     {
-       // Num,
-        Type,
         Id,
-        LocId,
         Desc
+    };
+
+    enum ReaderInfo
+    {
+        Addr,
+        Name
     };
 
     /**
@@ -104,19 +105,21 @@ public:
                          QString event = "",
                          QString react = "",
                          int red = 255, int green = 255, int blue = 255);
-    void addDevInfoToModel(/*QString num = "",*/
-                           QString type = "",
-                           QString id = "",
-                           QString loc_id = "",
-                           QString desc = "");
+    void addDevInfoToModel(R245_DEV_INFO * info);
     short int setActiveDev(int row, bool active);
-    short int setChannelDev(int row, short int channel);
-    short int setTimeDev(int row, short int time, bool time1);
-    short int setDistDev(int row, short int dist, bool dist1);
-    DEV_INFO * getDevSettings(unsigned int id);
+    short int setAuditEn(int row, unsigned char addr, bool active);
+    short int setChannelDev(int row, unsigned char addr, short int channel);
+    short int setTimeDev(int row, unsigned char addr, short int time, bool time1);
+    short int setDistDev(int row, unsigned char addr, unsigned char dist, bool dist1);
+    DEV_INFO * getDevSettings(ulong id, unsigned char addr);
     void readDevInfo();
     void saveSetings();
     void addLogNode(QString dev_num, R245_TRANSACT * trans);
+    void addReaderToModel(unsigned char dev_num, unsigned char addr = 0, QString name = "Нет имени");
+    void deleteReaderFromModel(int dev_num, int reader_num);
+    bool getReaderSettings(unsigned char dev_num, DEV_INFO * dev);
+    unsigned char getFreeAddress(unsigned char dev_num);
+    bool isFreeAddress(unsigned char dev_num, unsigned char addr);
 private:
 
     /// Указатель на файл настроек
@@ -149,7 +152,7 @@ private:
     /** Список структур DEV_INFO, хранящий информацию о подключенных устройствах
       * (в том числе и настройки для устройств, загруженных их файла)
       */
-    QList<DEV_INFO> dev_settings;
+    QMap <ulong, QList<DEV_INFO> *> dev_settings;
 
     /// Текстовый поток для удобства осуществления файловых операций
     QTextStream * log_stream;
@@ -165,9 +168,12 @@ private:
     QDomElement addDevNameToDom(QDomDocument dom_doc,
                                 const QString & id,
                                 const QString & name);
-    QDomElement addDevToDom(QDomDocument dom_doc, const DEV_INFO &id);
+    QDomElement addDevToDom(QDomDocument dom_doc, ulong id);
     QDomElement addEventToDom(QDomDocument dom_doc, int row);
     void initSetModels();
+
 public slots:
+signals:
+        void sigAddReader(QStandardItem *);
 };
 #endif // SETTINGS_OBJ_H

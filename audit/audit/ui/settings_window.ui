@@ -69,73 +69,6 @@
          </property>
         </widget>
        </item>
-       <item row="2" column="0" colspan="4">
-        <widget class="QTabWidget" name="settings_tabs">
-         <property name="currentIndex">
-          <number>0</number>
-         </property>
-         <widget class="QWidget" name="tag_tab">
-          <attribute name="title">
-           <string>Названия меток</string>
-          </attribute>
-          <layout class="QGridLayout" name="gridLayout_2">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label">
-             <property name="text">
-              <string>Строка поиска:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="find_tag_le"/>
-           </item>
-           <item row="1" column="0" colspan="2">
-            <widget class="QTableView" name="tag_view"/>
-           </item>
-          </layout>
-         </widget>
-         <widget class="QWidget" name="dev_name_tab">
-          <attribute name="title">
-           <string>Названия устройств</string>
-          </attribute>
-          <layout class="QGridLayout" name="gridLayout_4">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_2">
-             <property name="text">
-              <string>Строка поиска:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="find_dev_le"/>
-           </item>
-           <item row="1" column="0" colspan="2">
-            <widget class="QTableView" name="dev_name_view"/>
-           </item>
-          </layout>
-         </widget>
-         <widget class="QWidget" name="event_tab">
-          <attribute name="title">
-           <string>Настройка событий</string>
-          </attribute>
-          <layout class="QGridLayout" name="gridLayout_5">
-           <item row="0" column="0">
-            <widget class="QLabel" name="label_5">
-             <property name="text">
-              <string>Строка поиска:</string>
-             </property>
-            </widget>
-           </item>
-           <item row="0" column="1">
-            <widget class="QLineEdit" name="find_event_le"/>
-           </item>
-           <item row="1" column="0" colspan="2">
-            <widget class="QTableView" name="event_view"/>
-           </item>
-          </layout>
-         </widget>
-        </widget>
-       </item>
        <item row="3" column="0" colspan="4">
         <layout class="QHBoxLayout" name="horizontalLayout_6">
          <item>
@@ -181,58 +114,64 @@
          </property>
         </widget>
        </item>
+       <item row="2" column="0" colspan="4">
+        <widget class="QTabWidget" name="settings_tabs">
+         <property name="currentIndex">
+          <number>1</number>
+         </property>
+         <widget class="QWidget" name="tag_tab">
+          <attribute name="title">
+           <string>Названия меток</string>
+          </attribute>
+          <layout class="QGridLayout" name="gridLayout_2">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label">
+             <property name="text">
+              <string>Строка поиска:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="find_tag_le"/>
+           </item>
+           <item row="1" column="0" colspan="2">
+            <widget class="QTableView" name="tag_view"/>
+           </item>
+          </layout>
+         </widget>
+         <widget class="QWidget" name="event_tab">
+          <attribute name="title">
+           <string>Настройка событий</string>
+          </attribute>
+          <layout class="QGridLayout" name="gridLayout_5">
+           <item row="0" column="0">
+            <widget class="QLabel" name="label_5">
+             <property name="text">
+              <string>Строка поиска:</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="1">
+            <widget class="QLineEdit" name="find_event_le"/>
+           </item>
+           <item row="1" column="0" colspan="2">
+            <widget class="QTableView" name="event_view"/>
+           </item>
+          </layout>
+         </widget>
+        </widget>
+       </item>
       </layout>
      </widget>
      <widget class="QWidget" name="dev_tab">
       <attribute name="title">
        <string>Подключенные устройства</string>
       </attribute>
-      <layout class="QVBoxLayout" name="verticalLayout_3">
-       <item>
+      <layout class="QGridLayout" name="gridLayout_3">
+       <item row="0" column="0" colspan="4">
         <widget class="QTreeView" name="dev_view"/>
        </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <item>
-          <widget class="QPushButton" name="find_dev_button">
-           <property name="text">
-            <string>Найти устройства</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QPushButton" name="act_dev_button">
-           <property name="text">
-            <string>Подключить устройство</string>
-           </property>
-           <property name="checkable">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QPushButton" name="synch_time_button">
-           <property name="text">
-            <string>Синхронизировать часы</string>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </item>
-       <item>
+       <item row="7" column="0" colspan="4">
         <layout class="QHBoxLayout" name="horizontalLayout_3">
          <item>
           <widget class="QFrame" name="frame">
@@ -441,6 +380,40 @@
          </item>
         </layout>
        </item>
+       <item row="2" column="0">
+        <widget class="QPushButton" name="find_dev_button">
+         <property name="text">
+          <string>Найти устройства</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="3">
+        <widget class="QPushButton" name="synch_time_button">
+         <property name="text">
+          <string>Синхронизировать часы</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="1">
+        <widget class="QPushButton" name="del_dev_button">
+         <property name="text">
+          <string>Удалить устройство</string>
+         </property>
+        </widget>
+       </item>
+       <item row="2" column="2">
+        <spacer name="horizontalSpacer_2">
+         <property name="orientation">
+          <enum>Qt::Horizontal</enum>
+         </property>
+         <property name="sizeHint" stdset="0">
+          <size>
+           <width>40</width>
+           <height>20</height>
+          </size>
+         </property>
+        </spacer>
+       </item>
       </layout>
      </widget>
     </widget>
@@ -489,12 +462,8 @@
   <tabstop>settings_tabs</tabstop>
   <tabstop>find_tag_le</tabstop>
   <tabstop>tag_view</tabstop>
-  <tabstop>find_dev_le</tabstop>
-  <tabstop>dev_name_view</tabstop>
   <tabstop>find_event_le</tabstop>
   <tabstop>event_view</tabstop>
-  <tabstop>synch_time_button</tabstop>
-  <tabstop>act_dev_button</tabstop>
   <tabstop>ch1_button</tabstop>
   <tabstop>dist1_dial</tabstop>
   <tabstop>dist1_le</tabstop>
@@ -502,7 +471,6 @@
   <tabstop>dist2_dial</tabstop>
   <tabstop>dist2_le</tabstop>
   <tabstop>dev_view</tabstop>
-  <tabstop>find_dev_button</tabstop>
  </tabstops>
  <resources/>
  <connections/>

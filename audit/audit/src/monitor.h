@@ -63,7 +63,7 @@ public:
     QAbstractItemModel * getModel(bool proxy);
     void clear();
     void update();
-    void updateAlias(QStandardItemModel * tag_model, QStandardItemModel * dev_name_model);
+    //void updateAlias(QStandardItemModel * tag_model, QStandardItemModel * dev_name_model);
     QMap <int, QString> * getState();
 
 

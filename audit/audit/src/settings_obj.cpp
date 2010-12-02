@@ -35,6 +35,7 @@ SettingsObj::SettingsObj()
     event_model_proxy->setFilterWildcard("*");
 
     dev_model = new QStandardItemModel();
+    dev_model->setObjectName("dev_model");
 }
 
 /**
@@ -77,9 +78,6 @@ void SettingsObj::setFilterWildCard(QString ex, TypeModel type_model)
     {
         case TagModelProxy:
             tag_model_proxy->setFilterWildcard(ex);
-            break;
-        case DevNameModelProxy:
-            dev_name_model_proxy->setFilterWildcard(ex);
             break;
         case EventModelProxy:
             event_model_proxy->setFilterWildcard(ex);
@@ -226,26 +224,36 @@ void SettingsObj::readDevInfo()
 {
     R245_DEV_INFO info;
     short int dev_ctr = 0;
+    short int static ctr = 0;
 
-    dev_model->clear();
+    //dev_model->clear();
     utils.R245_CloseAllDev();
 
     QStringList dev_header;
-    dev_header << /*"номер" <<*/ "тип" << "id" << "locId" << "описание";
+    dev_header << "id" << "описание";
     dev_model->setColumnCount(dev_header.count());
     dev_model->setHorizontalHeaderLabels(dev_header);
 
-    while(!utils.R245_GetDevInfo(dev_ctr, &info))
+    //TEST
+    info.desc[0] = 'T';
+    info.desc[1] = '\0';
+    info.id = ctr++;
+    info.loc_id = 2;
+    info.type = 5;
+    addDevInfoToModel(&info);
+    //TEST
+
+    /*while(!utils.R245_GetDevInfo(dev_ctr, &info))
     {
         //QString num = info.serial_number;
         QString type = QString().setNum(info.type);
         QString id = QString().setNum(info.id);
         QString loc_id = QString().setNum(info.loc_id);
-        QString desc = info.desc;
+        QString desc = info.desc;*/
 
-        addDevInfoToModel(/*num,*/ type, id, loc_id, desc);
-        dev_ctr++;
-    }
+    //    addDevInfoToModel(/*num,*/ type, id, loc_id, desc);
+    //    dev_ctr++;
+    //}
 }
 
 /**
@@ -274,39 +282,53 @@ void SettingsObj::readSettingNodes(const QDomNode &node)
                 {
                     QDomElement child_el = dom_node.firstChildElement();
                     addDevNameToModel(dom_el.attribute("id", ""), child_el.text());
-                } else if(dom_el.tagName() == "dev")
+                } else if(dom_el.tagName() == "root_dev")
                 {
-                    DEV_INFO dev;
+                    ulong id = dom_el.attribute("id", "").toULong();
+                    QList<DEV_INFO> * dev_list = new QList<DEV_INFO>;
 
-                    dev.id = dom_el.attribute("id", "").toInt();
-
-                    QDomElement child_el = dom_node.firstChildElement();
-                    while(!child_el.isNull())
+                    QDomElement dev_el = dom_node.firstChildElement();
+                    while(!dev_el.isNull())
                     {
-                        if(child_el.tagName() == "channel")
+                        if(dev_el.tagName() == "dev")
                         {
-                            dev.channel = child_el.text().toInt();
-                        } else if(child_el.tagName() == "active")
-                        {
-                            dev.active = child_el.text().toInt();
-                        } else if(child_el.tagName() == "dist1")
-                        {
-                            dev.dist1 = child_el.text().toInt();
-                        } else if(child_el.tagName() == "time1")
-                        {
-                            dev.time1 = child_el.text().toInt();
-                        } else if(child_el.tagName() == "dist2")
-                        {
-                            dev.dist2 = child_el.text().toInt();
-                        } else if(child_el.tagName() == "time2")
-                        {
-                            dev.time2 = child_el.text().toInt();
+                            DEV_INFO dev;
+
+                            dev.addr = dev_el.attribute("id", "").toInt();
+
+                            QDomElement child_el = dev_el.firstChildElement();
+                            while(!child_el.isNull())
+                            {
+                                if(child_el.tagName() == "channel")
+                                {
+                                    dev.channel = child_el.text().toInt();
+                                } else if(child_el.tagName() == "active")
+                                {
+                                    dev.active = child_el.text().toInt();
+                                } else if(child_el.tagName() == "dist1")
+                                {
+                                    dev.dist1 = child_el.text().toInt();
+                                } else if(child_el.tagName() == "time1")
+                                {
+                                    dev.time1 = child_el.text().toInt();
+                                } else if(child_el.tagName() == "dist2")
+                                {
+                                    dev.dist2 = child_el.text().toInt();
+                                } else if(child_el.tagName() == "time2")
+                                {
+                                    dev.time2 = child_el.text().toInt();
+                                } else if(child_el.tagName() == "name")
+                                {
+                                    dev.name = child_el.text();
+                                }
+                                child_el = child_el.nextSiblingElement();
+                            }
+                            dev_list->append(dev);
                         }
-                        child_el = child_el.nextSiblingElement();
+                        dev_el = dev_el.nextSiblingElement();
                     }
 
-                    if(getDevSettings(dev.id) == NULL)
-                        dev_settings.append(dev);
+                    dev_settings[id] = dev_list;
 
                 } else if(dom_el.tagName() == "event_node")
                 {
@@ -376,16 +398,12 @@ QAbstractItemModel * SettingsObj::getModel(TypeModel type_model)
     {
         case TagModel:
             return tag_model;
-        case DevNameModel:
-            return dev_name_model;
         case DevModel:
             return dev_model;
         case EventModel:
             return event_model;
         case TagModelProxy:
             return tag_model_proxy;
-        case DevNameModelProxy:
-            return dev_name_model_proxy;
         case EventModelProxy:
             return event_model_proxy;
     }
@@ -438,18 +456,32 @@ QDomElement SettingsObj::addDevNameToDom(QDomDocument dom_doc, const QString &id
   *
   * @return возвращает QDomElement, пригодный для вставки в структуру xml.
   */
-QDomElement SettingsObj::addDevToDom(QDomDocument dom_doc, const DEV_INFO &dev)
+QDomElement SettingsObj::addDevToDom(QDomDocument dom_doc, ulong id)
 {
-    QDomElement dom_element = makeElement(dom_doc, "dev", QString().setNum(dev.id), "");
+    QDomElement root_dev_element = makeElement(dom_doc, "root_dev", QString().setNum(id), "");
 
-    dom_element.appendChild(makeElement(dom_doc, "channel", "", QString().setNum(dev.channel)));
-    dom_element.appendChild(makeElement(dom_doc, "active", "", QString().setNum(dev.active)));
-    dom_element.appendChild(makeElement(dom_doc, "dist1", "", QString().setNum(dev.dist1)));
-    dom_element.appendChild(makeElement(dom_doc, "time1", "", QString().setNum(dev.time1)));
-    dom_element.appendChild(makeElement(dom_doc, "dist2", "", QString().setNum(dev.dist2)));
-    dom_element.appendChild(makeElement(dom_doc, "time2", "", QString().setNum(dev.time2)));
+    QList<DEV_INFO> * dev_root = dev_settings[id];
 
-    return dom_element;
+    QList<DEV_INFO>::iterator it = dev_root->begin();
+
+    for(; it != dev_root->end(); ++it)
+    {
+        DEV_INFO dev = *it;
+
+        QDomElement dev_element = makeElement(dom_doc, "dev", QString().setNum(dev.addr), "");
+
+        dev_element.appendChild(makeElement(dom_doc, "channel", "", QString().setNum(dev.channel)));
+        dev_element.appendChild(makeElement(dom_doc, "active", "", QString().setNum(dev.active)));
+        dev_element.appendChild(makeElement(dom_doc, "dist1", "", QString().setNum(dev.dist1)));
+        dev_element.appendChild(makeElement(dom_doc, "time1", "", QString().setNum(dev.time1)));
+        dev_element.appendChild(makeElement(dom_doc, "dist2", "", QString().setNum(dev.dist2)));
+        dev_element.appendChild(makeElement(dom_doc, "time2", "", QString().setNum(dev.time2)));
+        dev_element.appendChild(makeElement(dom_doc, "name", "", dev.name));
+
+        root_dev_element.appendChild(dev_element);
+    }
+
+    return root_dev_element;
 }
 
 /**
@@ -499,32 +531,35 @@ short int SettingsObj::setActiveDev(int row, bool active)
 {
     QBrush color;
     qint8 ft_status = 1;
-    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
+
+    if(active)
+    {
+        ft_status = utils.R245_InitDev(row);
+        if(!ft_status)
+            color = Qt::green;
+    } else
+    {
+        ft_status = utils.R245_CloseDev(row);
+        if(!ft_status)
+            color = Qt::white;
+    }
+
+    return ft_status;
+}
+
+short int SettingsObj::setAuditEn(int row, unsigned char addr, bool active)
+{
+
+    qint8 ft_status = 0;
+    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
 
     if(dev != NULL)
     {
-        if(active)
-        {
-            color = Qt::green;
-            utils.R245_InitDev(row);
-            ft_status = utils.R245_AuditEn(row, active);
-        } else
-        {
-            color = Qt::white;
-            ft_status = utils.R245_CloseDev(row);
-        }
+        ft_status = utils.R245_AuditEn(row, addr, active);
 
         if(!ft_status)
         {
             dev->active = active;
-            qDebug("Active ok");
-            for(int i = 0; i < dev_model->columnCount(); ++i)
-            {
-                dev_model->item(row, i)->setBackground(color);
-            }
-        } else
-        {
-            utils.R245_CloseDev(row);
         }
     }
 
@@ -532,53 +567,44 @@ short int SettingsObj::setActiveDev(int row, bool active)
 }
 
 
-short int SettingsObj::setChannelDev(int row, short int channel)
+short int SettingsObj::setChannelDev(int row, unsigned char addr, short int channel)
 {
     qint8 ft_status = 0;
-    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
-
-    //qDebug() << "Channel change = " << channel;
+    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
 
     if(dev != NULL)
     {
-        if(!dev->active)
-            utils.R245_InitDev(row);
-
         if(channel & CHANNEL_ACT_1)
-            ft_status = utils.R245_SetChan(row, 1, 1);
+            ft_status = utils.R245_SetChan(row, addr, 1, 1);
         else
-            ft_status = utils.R245_SetChan(row, 1, 0);
+            ft_status = utils.R245_SetChan(row, addr, 1, 0);
 
         if(!ft_status)
         {
             if(channel & CHANNEL_ACT_2)
-                ft_status = utils.R245_SetChan(row, 2, 1);
+                ft_status = utils.R245_SetChan(row, addr, 2, 1);
             else
-                ft_status = utils.R245_SetChan(row, 2, 0);
+                ft_status = utils.R245_SetChan(row, addr, 2, 0);
 
             if(!ft_status)
             {
                 dev->channel = channel;
             }
         }
-        if(!dev->active)
-            utils.R245_CloseDev(row);
     }
 
     return ft_status;
 }
 
-short int SettingsObj::setDistDev(int row, short int dist, bool dist1)
+short int SettingsObj::setDistDev(int row, unsigned char addr, unsigned char dist, bool dist1)
 {
     qint8 ft_status = 0;
-    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
+    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
     unsigned char channel = (dist1)? 1: 2;
 
     if(dev != NULL)
     {
-        if(!dev->active)
-            utils.R245_InitDev(row);
-        ft_status = utils.R245_SetDamp(row, channel, 31 - dist);
+        ft_status = utils.R245_SetDamp(row, addr, channel, 31 - dist);
 
         if(!ft_status)
         {
@@ -587,8 +613,6 @@ short int SettingsObj::setDistDev(int row, short int dist, bool dist1)
             else
                 dev->dist2 = dist;
         }
-        if(!dev->active)
-            utils.R245_CloseDev(row);
     } else
     {
         qDebug() << "link to dev is null";
@@ -597,11 +621,11 @@ short int SettingsObj::setDistDev(int row, short int dist, bool dist1)
     return ft_status;
 }
 
-short int SettingsObj::setTimeDev(int row, short int time, bool time1)
+short int SettingsObj::setTimeDev(int row, unsigned char addr, short int time, bool time1)
 {
     qint8 ft_status = 0;
     DEV_INFO * dev = NULL;
-    dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt());
+    dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
     unsigned char channel = (time1)? 1: 2;
 
     qDebug() << "Set time: " << time;
@@ -609,10 +633,7 @@ short int SettingsObj::setTimeDev(int row, short int time, bool time1)
     if(dev != NULL)
     {
 
-        if(!dev->active)
-            utils.R245_InitDev(row);
-
-        ft_status = utils.R245_SetTime(row, channel, time);
+        ft_status = utils.R245_SetTime(row, addr, channel, time);
 
         if(!ft_status)
         {
@@ -621,9 +642,6 @@ short int SettingsObj::setTimeDev(int row, short int time, bool time1)
             else
                 dev->time2 = time;
         }
-
-        if(!dev->active)
-            utils.R245_CloseDev(row);
     }
 
     return ft_status;
@@ -642,6 +660,7 @@ void SettingsObj::saveSetings()
 
         doc.appendChild(root_el);
 
+        // Сохраняем настройки имен меток
         QDomElement tag_dom = makeElement(doc, "tags", "", "");
 
         root_el.appendChild(tag_dom);
@@ -654,6 +673,7 @@ void SettingsObj::saveSetings()
             tag_dom.appendChild(addTagToDom(doc, id, name));
         }
 
+        // Сохраняем настройки имен устройств
         QDomElement dev_name_dom = makeElement(doc, "dev_names", "", "");
 
         root_el.appendChild(dev_name_dom);
@@ -666,17 +686,19 @@ void SettingsObj::saveSetings()
             dev_name_dom.appendChild(addDevNameToDom(doc, id, name));
         }
 
+        // Сохраняем настройки устройств
         QDomElement dev_dom = makeElement(doc, "devices", "", "");
 
         root_el.appendChild(dev_dom);
 
-        QList<DEV_INFO>::iterator it = dev_settings.begin();
+        QMap<ulong, QList<DEV_INFO> *>::const_iterator it = dev_settings.constBegin();
 
-        for(; it != dev_settings.end(); ++it)
+        for(; it != dev_settings.constEnd(); ++it)
         {
-            dev_dom.appendChild(addDevToDom(doc, *it));
+            dev_dom.appendChild(addDevToDom(doc, it.key()));
         }
 
+        // Сохраняем настройки событий
         QDomElement event_dom = makeElement(doc, "events", "", "");
 
         root_el.appendChild(event_dom);
@@ -746,8 +768,8 @@ void SettingsObj::addEventToModel(QString id_dev, QString name,
 
     QString tag_name = "", dev_name = "";
 
-    utils.findAlias(tag_model, id_tag, &tag_name);
-    utils.findAlias(dev_name_model, id_dev, &dev_name);
+    //utils.findAlias(tag_model, id_tag, &tag_name);
+    //utils.findAlias(dev_name_model, id_dev, &dev_name);
 
     event_model->setItem(row, EvIdDev, new QStandardItem(id_dev));
     event_model->setItem(row, EvName, new QStandardItem(name));
@@ -777,34 +799,217 @@ void SettingsObj::addEventToModel(QString id_dev, QString name,
     }
 }
 
-DEV_INFO * SettingsObj::getDevSettings(unsigned int id)
+DEV_INFO * SettingsObj::getDevSettings(ulong id, unsigned char addr)
 {
-    QList<DEV_INFO>::iterator it = dev_settings.begin();
 
-    for(; it != dev_settings.end(); ++it)
+    if(dev_settings.find(id) != dev_settings.end())
     {
-        if(it->id == id)
+        QList<DEV_INFO> * dev_root = dev_settings[id];
+        QList<DEV_INFO>::iterator it = dev_root->begin();
+
+        for(; it != dev_root->end(); ++it)
         {
-            return &(*it);
+            if(it->addr == addr)
+            {
+                return &(*it);
+            }
         }
     }
 
     return NULL;
 }
 
-void SettingsObj::addDevInfoToModel(/*QString num,*/ QString type, QString id,
-                       QString loc_id, QString desc)
+bool SettingsObj::isFreeAddress(unsigned char dev_num, unsigned char addr)
+{
+    for(int i = 0; i < dev_model->item(dev_num)->rowCount(); i++)
+    {
+        unsigned char cur_addr = dev_model->item(dev_num)->child(i)->data(Qt::DisplayRole).toInt();
+        if(cur_addr == addr)
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
+unsigned char SettingsObj::getFreeAddress(unsigned char dev_num)
+{
+    unsigned char addr = 1;
+
+    for(addr = 1; addr < 255; addr++)
+    {
+        if(isFreeAddress(dev_num, addr))
+        {
+            return addr;
+        }
+    }
+    return 0;
+}
+
+void SettingsObj::addReaderToModel(unsigned char dev_num, unsigned char addr, QString name)
+{
+    QModelIndex index = dev_model->index(dev_num, 0);
+
+    QList<QStandardItem *> items;
+
+    ulong id = index.data().toULongLong();
+
+    // Поиск свободного адреса для устройства
+    if(addr == 0)
+    {
+        addr = getFreeAddress(dev_num);
+        if(addr == 0)
+        {
+            // Если не нали свободного адреса, то выводим сообщение
+            utils.showMessage(QMessageBox::Warning, "Поиск адреса", "Все свободные адреса заняты");
+            return;
+        }
+    }
+
+    DEV_INFO * dev = getDevSettings(id, addr);
+
+    if(dev == NULL)
+    {
+
+        qDebug() << "Dev NULL";
+        DEV_INFO dev_new;
+
+        dev_new.active = false;
+        dev_new.addr = addr;
+        dev_new.channel = 0;
+        dev_new.dist1 = 7;
+        dev_new.dist2 = 3;
+        dev_new.name = name;
+        dev_new.time1 = 0;
+        dev_new.time2 = 0;
+
+        dev_settings[id]->append(dev_new);
+
+        items.append(new QStandardItem(QString().setNum(addr)));
+        items.append(new QStandardItem(name));
+    } else
+    {
+        qDebug() << "SETTINGS LOAD";
+        items.append(new QStandardItem(QString().setNum(dev->addr)));
+        items.append(new QStandardItem(dev->name));
+    }
+
+    dev_model->item(dev_num)->appendRow(items);
+
+    int row = dev_model->item(dev_num)->rowCount() - 1;
+    emit sigAddReader(dev_model->item(dev_num)->child(row));
+
+    /*if(dev == NULL)
+    {
+        DEV_INFO dev_new;
+        dev_new.name = name;
+        dev_new.addr = addr;
+
+        if(utils.R245_GetChan(row, addr, &dev_new.channel) == R245_OK)
+        {
+            utils.R245_GetDamp(row, addr, 1, &dev_new.dist1);
+            utils.R245_GetDamp(row, addr, 2, &dev_new.dist2);
+            utils.R245_GetTime(row, addr, 1, &dev_new.time1);
+            utils.R245_GetTime(row, addr, 2, &dev_new.time2);
+
+            items.append(new QStandardItem(QString().setNum(addr)));
+            items.append(new QStandardItem(name));
+            item->appendRow(items);
+
+            dev_settings[id].append(dev_new);
+        } else
+        {
+            utils.showMessage(QMessageBox::Warning,
+                              "Обнаружение устройств",
+                              "Невозможно инициалицировать устройство " + QString().setNum(row)
+                              );
+        }
+
+    } else
+    {
+        if(setChannelDev(row, dev->channel) == R245_OK)
+        {
+            setTimeDev(row, dev->time1, true);
+            setTimeDev(row, dev->time2, false);
+            setDistDev(row, dev->dist1, true);
+            setDistDev(row, dev->dist2, false);
+
+            items.append(new QStandardItem(QString().setNum(dev->addr)));
+            items.append(new QStandardItem(dev->name));
+            item->appendRow(items);
+        } else
+        {
+            utils.showMessage(QMessageBox::Warning,
+                              "Обнаружение устройств",
+                              "Невозможно настроить подключенное устройство " + QString().setNum(row)
+                              );
+        }
+    }*/
+}
+
+bool SettingsObj::getReaderSettings(unsigned char dev_num, DEV_INFO * dev)
+{
+
+    if(utils.R245_GetChan(dev_num, dev->addr, &dev->channel) == R245_OK)
+    {
+        utils.R245_GetDamp(dev_num, dev->addr, 1, &dev->dist1);
+        utils.R245_GetDamp(dev_num, dev->addr, 2, &dev->dist2);
+        utils.R245_GetTime(dev_num, dev->addr, 1, &dev->time1);
+        utils.R245_GetTime(dev_num, dev->addr, 2, &dev->time2);
+
+        return true;
+    }
+
+    utils.showMessage(QMessageBox::Warning,
+                      "Получение настроек",
+                      "Невозможно получить настройки устройства");
+
+    return false;
+}
+
+void SettingsObj::deleteReaderFromModel(int dev_num, int reader_num)
+{
+    ulong id = dev_model->item(dev_num)->data(Qt::DisplayRole).toULongLong();
+
+    dev_settings[id]->removeAt(reader_num);
+    dev_model->item(dev_num)->removeRow(reader_num);
+}
+
+void SettingsObj::addDevInfoToModel(R245_DEV_INFO * info)
 {
     int row = dev_model->rowCount();
 
-    dev_model->insertRow(row);
-    //dev_model->setItem(row, Num, new QStandardItem(num));
-    dev_model->setItem(row, Type, new QStandardItem(type));
-    dev_model->setItem(row, Id, new QStandardItem(id));
-    dev_model->setItem(row, LocId, new QStandardItem(loc_id));
-    dev_model->setItem(row, Desc, new QStandardItem(desc));
+    if(true/*!setActiveDev(row, true)*/)
+    {
+        QStandardItem * id_item = new QStandardItem(QString().setNum(info->id));
+        QStandardItem * desc_item = new QStandardItem(info->desc);
 
-    DEV_INFO * dev = getDevSettings(id.toInt());
+        id_item->setEditable(false);
+        desc_item->setEditable(false);
+
+        QList<QStandardItem *> items;
+
+        items.append(id_item);
+        items.append(desc_item);
+
+        dev_model->appendRow(items);
+
+        if(dev_settings.find(info->id) == dev_settings.end())
+        {
+            dev_settings[info->id] = new QList<DEV_INFO>;
+        } else
+        {
+            QList<DEV_INFO> * dev_root = dev_settings[info->id];
+            QList<DEV_INFO>::iterator it = dev_root->begin();
+
+            for(; it != dev_root->end(); ++it)
+            {
+                addReaderToModel(row, it->addr, it->name);
+            }
+        }
+    }
+
+    /*DEV_INFO * dev = getDevSettings(id.toInt());
 
     if(dev == NULL)
     {
@@ -815,17 +1020,17 @@ void SettingsObj::addDevInfoToModel(/*QString num,*/ QString type, QString id,
 
         utils.R245_InitDev(row);
 
-        if(utils.R245_GetChan(row, &dev_new.channel) == R245_OK)
-        {
+        if(utils.R245_GetChan(row, 1, &dev_new.channel) == R245_OK)
+        {*/
             /* Если команда отправляется без ошибок, то
              * инициализация прошла успешно
              */
 
-            utils.R245_GetChan(row, &dev_new.channel);
-            utils.R245_GetDamp(row, 1, &dev_new.dist1);
-            utils.R245_GetDamp(row, 2, &dev_new.dist2);
-            utils.R245_GetTime(row, 1, &dev_new.time1);
-            utils.R245_GetTime(row, 2, &dev_new.time2);
+       /*     utils.R245_GetChan(row, 1, &dev_new.channel);
+            utils.R245_GetDamp(row, 1, 1, &dev_new.dist1);
+            utils.R245_GetDamp(row, 1, 2, &dev_new.dist2);
+            utils.R245_GetTime(row, 1, 1, &dev_new.time1);
+            utils.R245_GetTime(row, 1, 2, &dev_new.time2);
 
             utils.R245_CloseDev(row);
             dev_settings.append(dev_new);
@@ -840,8 +1045,9 @@ void SettingsObj::addDevInfoToModel(/*QString num,*/ QString type, QString id,
 
 
     } else
-    {
-        if(setActiveDev(row, dev->active) == R245_OK)
+    {*/
+        // Запрещаем автоматическую настройку устройств
+        /*if(setActiveDev(row, dev->active) == R245_OK)
         {
             setChannelDev(row, dev->channel);
             setTimeDev(row, dev->time1, true);
@@ -854,8 +1060,8 @@ void SettingsObj::addDevInfoToModel(/*QString num,*/ QString type, QString id,
                               "Обнаружение устройств",
                               "Невозможно настроить подключенное устройство " + QString().setNum(row)
                               );
-        }
-    }
+        }*/
+  //  }
 }
 
 SettingsObj::~SettingsObj()

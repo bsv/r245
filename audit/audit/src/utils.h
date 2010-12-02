@@ -32,8 +32,8 @@ public:
     bool unloadLibrary();
     //qint8 testFunc();
 
-    void findAlias(QAbstractItemModel * model, QString find_val, QString * alias);
-    void changeAlias(QStandardItem * alias_item, QStandardItemModel * model, bool clear);
+    //void findAlias(QAbstractItemModel * model, QString find_val, QString * alias);
+    //void changeAlias(QStandardItem * alias_item, QStandardItemModel * model, bool clear);
     int timeToSec(QTime time);
     QTime secToTime(int time_sec);
     void showMessage(QMessageBox::Icon icon, QString header, QString msg);
@@ -63,6 +63,8 @@ public:
     GetChan R245_GetChan;
     SetTimeRTC R245_SetTimeRTC;
     SetDateRTC R245_SetDateRTC;
+    SetAddr R245_SetAddr;
+    ClearTrans R245_ClearTrans;
     /** @} */
 };
 
