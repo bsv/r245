@@ -8,6 +8,12 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
 {
     setupUi(this);
 
+    menu = new QMenu(this);
+    menu->addAction("Получить настройки", this, SLOT(slotGetDevSettings()));
+    menu->addAction("Обновить адрес", this, SLOT(slotUpdAddr()));
+    menu->addAction("Удалить устройство", this, SLOT(slotDeleteDev()));
+
+
     set_menu_tab->setTabEnabled(1, false);
 
     set_obj = set;
@@ -26,12 +32,14 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     chanell_list << "1" << "2";
 
     tag_view->setModel(set_obj->getModel(SettingsObj::TagModelProxy));
-    event_view->setModel(set_obj->getModel(SettingsObj::EventModelProxy));
-    dev_view->setModel(set_obj->getModel(SettingsObj::DevModel));
 
+    dev_view->setModel(set_obj->getModel(SettingsObj::DevModel));
+    dev_view->installEventFilter(this);
+    dev_view->setObjectName("dev_view");
+
+    event_view->setModel(set_obj->getModel(SettingsObj::EventModelProxy));
     event_view->hideColumn(SettingsObj::EvIdDev);
     event_view->hideColumn(SettingsObj::EvIdTag);
-
     event_view->setItemDelegate(new EventDelegate(&event_list, &react_list, &chanell_list, event_view));
 
     connect(settings_button, SIGNAL(clicked()), SLOT(slotOpenSettings()));
@@ -54,7 +62,6 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(new_log_btn, SIGNAL(clicked()), SLOT(slotNewLog()));
     connect(new_settings_btn, SIGNAL(clicked()), SLOT(slotNewSettings()));
     connect(dev_view, SIGNAL(doubleClicked(QModelIndex)), SLOT(slotAddDev(QModelIndex)));
-    connect(del_dev_button, SIGNAL(clicked()), SLOT(slotDeleteDev()));
 
     QStandardItemModel * event_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::EventModel);
     connect(event_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotEventDataChanged(QStandardItem*)));
@@ -67,6 +74,72 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(set_obj, SIGNAL(sigAddReader(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
 }
 
+bool SettingsWindow::eventFilter(QObject *obj, QEvent *event)
+{
+    if (obj->objectName() == "dev_view")
+    {
+        if (event->type() == QEvent::ContextMenu)
+        {
+            QModelIndex index = dev_view->selectionModel()->currentIndex();
+
+            if(index.isValid() && isReaderDev(index))
+            {
+                QMouseEvent * mevent = static_cast<QMouseEvent *>(event);
+                menu->exec(mevent->globalPos());
+            }
+            return true;
+        } else
+        {
+            return false;
+        }
+    } else
+    {
+        return QDialog::eventFilter(obj, event);
+    }
+}
+
+void SettingsWindow::slotUpdAddr()
+{
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
+
+    if(index.isValid() && isReaderDev(index))
+    {
+
+        utils.showMessage(QMessageBox::Warning, "Внимание",
+                          "При смене адреса на линии должен быть подключен только один считыватель");
+
+        unsigned char dev_num = index.parent().row();
+        unsigned char addr = index.parent().child(index.row(), 0).data().toInt();
+
+        if(utils.R245_SetAddr(dev_num, addr))
+        {
+            utils.showMessage(QMessageBox::Warning, "Смена адреса", "Ошибка смена адреса");
+        }
+    }
+}
+
+void SettingsWindow::slotGetDevSettings()
+{
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
+
+    if(index.isValid() && isReaderDev(index))
+    {
+        unsigned char dev_num = index.parent().row();
+        unsigned char addr = index.parent().child(index.row(), 0).data().toInt();
+        ulong id = index.parent().data().toULongLong();
+
+
+        DEV_INFO * dev = set_obj->getDevSettings(id, addr);
+
+        if(dev != NULL)
+        {
+            if(set_obj->getReaderSettings(dev_num, dev))
+            {
+                updateSettings(dev);
+            }
+        }
+    }
+}
 
 void SettingsWindow::slotDevDataChanged(QStandardItem * item)
 {
@@ -85,12 +158,13 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
         } else
         {
             qDebug() << "ADDR" << addr;
-            if(!set_obj->isFreeAddress(item->parent()->row(), addr))
+            // Сделать проверку адреса по нормальному
+            /*if(!set_obj->isFreeAddress(item->parent()->row(), addr))
             {
                 utils.showMessage(QMessageBox::Warning, "Изменение адреса", "Такой адрес уже имеется.");
                 addr = set_obj->getFreeAddress(item->parent()->row());
                 item->setText(QString().setNum(addr));
-            }
+            }*/
         }
 
     } else if(item->column() == SettingsObj::Name)
@@ -302,18 +376,26 @@ void SettingsWindow::slotSaveSetings()
 
         if(index.isValid() && isReaderDev(index))
         {
-            short int dev_coord = getDevCoord(index);
-            int row = (dev_coord & 0xFF00) >> 8;
-            int addr = dev_coord & 0x00FF;
+
+            int row = index.parent().row();
+            int addr = index.parent().child(index.row(), 0).data().toInt();
 
             unsigned char channel = 0;
             unsigned short time1 = utils.timeToSec(time1_edt->time());
             unsigned short time2 = utils.timeToSec(time2_edt->time());
+            unsigned char dist1 = dist1_le->text().toInt();
+            unsigned char dist2 = dist2_le->text().toInt();
 
             QStandardItemModel * model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevModel);
-            ulong id = model->item(row)->data().toULongLong();
+            ulong id = model->item(row)->data(Qt::DisplayRole).toULongLong();
 
             DEV_INFO * dev = set_obj->getDevSettings(id, addr);
+
+            if(dev == NULL)
+            {
+                qDebug() << "DevNULL";
+                return;
+            }
 
             if(ch1_button->isChecked())
                 channel |= CHANNEL_ACT_1;
@@ -323,7 +405,7 @@ void SettingsWindow::slotSaveSetings()
 
             if(dev->channel != channel)
             {
-                if(set_obj->setChannelDev(row, addr, channel) != R245_OK)
+                if(set_obj->setChannelDev(row, dev->addr, channel) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка каналов",
@@ -332,7 +414,7 @@ void SettingsWindow::slotSaveSetings()
             }
             if(dev->time1 != time1)
             {
-                if(set_obj->setTimeDev(row, addr, time1, true) != R245_OK)
+                if(set_obj->setTimeDev(row, dev->addr, time1, true) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка времени реакции",
@@ -341,25 +423,25 @@ void SettingsWindow::slotSaveSetings()
             }
             if(dev->time2 != time2)
             {
-                if(set_obj->setTimeDev(row, addr, time2, false) != R245_OK)
+                if(set_obj->setTimeDev(row, dev->addr, time2, false) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка времени реакции",
                                       "Невозможно обновить настройки времени реакции для второго канала");
                 }
             }
-            if(dev->dist1 != dist1_le->text().toInt())
+            if(dev->dist1 != dist1)
             {
-                if(set_obj->setDistDev(row, addr, dist1_le->text().toInt(), true) != R245_OK)
+                if(set_obj->setDistDev(row, dev->addr, dist1, true) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка дальности считывания",
                                       "Невозможно обновить настройки дальности считывания для первого канала");
                 }
             }
-            if(dev->dist2 != dist2_le->text().toInt())
+            if(dev->dist2 != dist2)
             {
-                if(set_obj->setDistDev(row, addr, dist2_le->text().toInt(), false) != R245_OK)
+                if(set_obj->setDistDev(row, dev->addr, dist2, false) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
                                       "Настройка дальности считывания",
@@ -453,6 +535,28 @@ void SettingsWindow::slotDeleteDev()
     }
 }
 
+/**
+  Обновление настроек считывателя в элементах интерфейса
+*/
+
+void SettingsWindow::updateSettings(DEV_INFO * dev)
+{
+    time1_edt->setTime(utils.secToTime(dev->time1));
+    time2_edt->setTime(utils.secToTime(dev->time2));
+    dist1_dial->setValue(dev->dist1);
+    dist2_dial->setValue(dev->dist2);
+
+    if(dev->channel & CHANNEL_ACT_1)
+        ch1_button->setChecked(true);
+    else
+        ch1_button->setChecked(false);
+
+    if(dev->channel & CHANNEL_ACT_2)
+        ch2_button->setChecked(true);
+    else
+        ch2_button->setChecked(false);
+}
+
 void SettingsWindow::slotDevClick(QModelIndex qmi)
 {
     if(isReaderDev(qmi))
@@ -469,21 +573,7 @@ void SettingsWindow::slotDevClick(QModelIndex qmi)
 
         if(dev != NULL)
         {
-
-            time1_edt->setTime(utils.secToTime(dev->time1));
-            time2_edt->setTime(utils.secToTime(dev->time2));
-            dist1_dial->setValue(dev->dist1);
-            dist2_dial->setValue(dev->dist2);
-
-            if(dev->channel & CHANNEL_ACT_1)
-                ch1_button->setChecked(true);
-            else
-                ch1_button->setChecked(false);
-
-            if(dev->channel & CHANNEL_ACT_2)
-                ch2_button->setChecked(true);
-            else
-                ch2_button->setChecked(false);
+            updateSettings(dev);
         }
     } else
     {

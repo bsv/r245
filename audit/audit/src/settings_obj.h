@@ -8,6 +8,7 @@
 #include <QIODevice>
 #include <QTextStream>
 #include <QDebug>
+#include <QMenu>
 #include "global.h"
 #include "monitor.h"
 

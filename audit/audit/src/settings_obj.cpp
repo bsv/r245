@@ -224,9 +224,9 @@ void SettingsObj::readDevInfo()
 {
     R245_DEV_INFO info;
     short int dev_ctr = 0;
-    short int static ctr = 0;
 
-    //dev_model->clear();
+
+    dev_model->clear();
     utils.R245_CloseAllDev();
 
     QStringList dev_header;
@@ -235,25 +235,20 @@ void SettingsObj::readDevInfo()
     dev_model->setHorizontalHeaderLabels(dev_header);
 
     //TEST
+    /*short int static ctr = 0;
     info.desc[0] = 'T';
     info.desc[1] = '\0';
     info.id = ctr++;
     info.loc_id = 2;
     info.type = 5;
-    addDevInfoToModel(&info);
+    addDevInfoToModel(&info);*/
     //TEST
 
-    /*while(!utils.R245_GetDevInfo(dev_ctr, &info))
+    while(!utils.R245_GetDevInfo(dev_ctr, &info))
     {
-        //QString num = info.serial_number;
-        QString type = QString().setNum(info.type);
-        QString id = QString().setNum(info.id);
-        QString loc_id = QString().setNum(info.loc_id);
-        QString desc = info.desc;*/
-
-    //    addDevInfoToModel(/*num,*/ type, id, loc_id, desc);
-    //    dev_ctr++;
-    //}
+        addDevInfoToModel(&info);
+        dev_ctr++;
+    }
 }
 
 /**
@@ -516,7 +511,6 @@ QDomElement SettingsObj::addEventToDom(QDomDocument dom_doc, int row)
     return dom_element;
 }
 
-
 /**
   * Делает активным или неактивным выбранное устройство.
   * С активным устройством возможно осуществлять обмен данными.
@@ -604,7 +598,7 @@ short int SettingsObj::setDistDev(int row, unsigned char addr, unsigned char dis
 
     if(dev != NULL)
     {
-        ft_status = utils.R245_SetDamp(row, addr, channel, 31 - dist);
+        ft_status = utils.R245_SetDamp(row, addr, channel, dist);
 
         if(!ft_status)
         {
@@ -949,8 +943,10 @@ void SettingsObj::addReaderToModel(unsigned char dev_num, unsigned char addr, QS
 
 bool SettingsObj::getReaderSettings(unsigned char dev_num, DEV_INFO * dev)
 {
-
-    if(utils.R245_GetChan(dev_num, dev->addr, &dev->channel) == R245_OK)
+    qDebug() << "NUM = " << dev_num;
+    qDebug() << "ADDR = " << dev->addr;
+    int ft_status = utils.R245_GetChan(dev_num, dev->addr, &dev->channel);
+    if(ft_status == R245_OK)
     {
         utils.R245_GetDamp(dev_num, dev->addr, 1, &dev->dist1);
         utils.R245_GetDamp(dev_num, dev->addr, 2, &dev->dist2);
@@ -963,6 +959,8 @@ bool SettingsObj::getReaderSettings(unsigned char dev_num, DEV_INFO * dev)
     utils.showMessage(QMessageBox::Warning,
                       "Получение настроек",
                       "Невозможно получить настройки устройства");
+
+    qDebug() << ft_status;
 
     return false;
 }
@@ -979,7 +977,7 @@ void SettingsObj::addDevInfoToModel(R245_DEV_INFO * info)
 {
     int row = dev_model->rowCount();
 
-    if(true/*!setActiveDev(row, true)*/)
+    if(!setActiveDev(row, true))
     {
         QStandardItem * id_item = new QStandardItem(QString().setNum(info->id));
         QStandardItem * desc_item = new QStandardItem(info->desc);

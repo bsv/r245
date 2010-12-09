@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>592</width>
+    <width>621</width>
     <height>403</height>
    </rect>
   </property>
@@ -20,7 +20,7 @@
       <bool>true</bool>
      </property>
      <property name="currentIndex">
-      <number>0</number>
+      <number>1</number>
      </property>
      <widget class="QWidget" name="tab_2">
       <attribute name="title">
@@ -117,7 +117,7 @@
        <item row="2" column="0" colspan="4">
         <widget class="QTabWidget" name="settings_tabs">
          <property name="currentIndex">
-          <number>1</number>
+          <number>0</number>
          </property>
          <widget class="QWidget" name="tag_tab">
           <attribute name="title">
@@ -380,13 +380,6 @@
          </item>
         </layout>
        </item>
-       <item row="2" column="0">
-        <widget class="QPushButton" name="find_dev_button">
-         <property name="text">
-          <string>Найти устройства</string>
-         </property>
-        </widget>
-       </item>
        <item row="2" column="3">
         <widget class="QPushButton" name="synch_time_button">
          <property name="text">
@@ -395,13 +388,6 @@
         </widget>
        </item>
        <item row="2" column="1">
-        <widget class="QPushButton" name="del_dev_button">
-         <property name="text">
-          <string>Удалить устройство</string>
-         </property>
-        </widget>
-       </item>
-       <item row="2" column="2">
         <spacer name="horizontalSpacer_2">
          <property name="orientation">
           <enum>Qt::Horizontal</enum>
@@ -413,6 +399,13 @@
           </size>
          </property>
         </spacer>
+       </item>
+       <item row="2" column="2">
+        <widget class="QPushButton" name="find_dev_button">
+         <property name="text">
+          <string>Найти устройства</string>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>

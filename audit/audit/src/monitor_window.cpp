@@ -246,7 +246,8 @@ void MonitorWindow::slotUpdateTrans()
                     //utils.findAlias(tag_model, QString().setNum(trans.tid), &tag_name);
                     //utils.findAlias(dev_name_model, QString().setNum(dev_num), &dev_name);
 
-                    monitor->addTransToModel(QString().setNum(dev_num), &trans, "", ""/*tag_name, dev_name*/);
+                    QString id = QString().setNum(dev_num) + QString().setNum(dev_row);
+                    monitor->addTransToModel(id, &trans, "", ""/*tag_name, dev_name*/);
                     set_obj->addLogNode(QString().setNum(dev_num), &trans); // add node to log file
                     //eventHandler(QString().setNum(dev_num), &trans, tag_name, dev_name);
 

@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QColorDialog>
+#include <QMouseEvent>
 #include "ui_settings_window.h"
 #include "settings_obj.h"
 #include "event_delegate.h"
@@ -25,10 +26,17 @@ private:
      QList<QString> chanell_list;
      QSettings settings;
 
+     QMenu * menu;
+
      bool block_alias_change;
 
     short int getDevCoord(QModelIndex index);
     bool isReaderDev(QModelIndex index);
+    void updateSettings(DEV_INFO * dev);
+
+protected:
+        virtual bool eventFilter(QObject *obj, QEvent *event);
+
 private slots:
     void slotOpenSettings(bool dialog = true);
     void slotOpenLog(bool dialog = true);
@@ -52,6 +60,8 @@ private slots:
     void slotAddDev(QModelIndex index);
     void slotDeleteDev();
     void slotDevDataChanged(QStandardItem* item);
+    void slotGetDevSettings();
+    void slotUpdAddr();
 };
 
 
