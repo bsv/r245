@@ -12,9 +12,6 @@ SettingsObj::SettingsObj()
     tag_model = new QStandardItemModel();
     tag_model->setObjectName("tag_model");
 
-    dev_name_model = new QStandardItemModel();
-    dev_name_model->setObjectName("dev_name_model");
-
     event_model = new QStandardItemModel();
 
     initSetModels();
@@ -24,17 +21,12 @@ SettingsObj::SettingsObj()
     tag_model_proxy->setFilterKeyColumn(-1); // filter all column
     tag_model_proxy->setFilterWildcard("*");
 
-    dev_name_model_proxy = new QSortFilterProxyModel();
-    dev_name_model_proxy->setSourceModel(dev_name_model);
-    dev_name_model_proxy->setFilterKeyColumn(-1); // filter all column
-    dev_name_model_proxy->setFilterWildcard("*");
-
     event_model_proxy = new QSortFilterProxyModel();
     event_model_proxy->setSourceModel(event_model);
     event_model_proxy->setFilterKeyColumn(-1);
     event_model_proxy->setFilterWildcard("*");
 
-    dev_model = new QStandardItemModel();
+    dev_model = new DevModel();
     dev_model->setObjectName("dev_model");
 }
 
@@ -44,16 +36,12 @@ SettingsObj::SettingsObj()
 void SettingsObj::initSetModels()
 {
     tag_model->clear();
-    dev_name_model->clear();
     event_model->clear();
 
     QStringList tag_header;
     tag_header << "id" << "им€";
     tag_model->setColumnCount(tag_header.count());
     tag_model->setHorizontalHeaderLabels(tag_header);
-
-    dev_name_model->setColumnCount(tag_header.count());
-    dev_name_model->setHorizontalHeaderLabels(tag_header);
 
     QStringList event_header;
     event_header << "id/им€ устройства" <<
@@ -76,10 +64,10 @@ void SettingsObj::setFilterWildCard(QString ex, TypeModel type_model)
 {
     switch(type_model)
     {
-        case TagModelProxy:
+        case TagTypeModelProxy:
             tag_model_proxy->setFilterWildcard(ex);
             break;
-        case EventModelProxy:
+        case EventTypeModelProxy:
             event_model_proxy->setFilterWildcard(ex);
             break;
         default:
@@ -189,6 +177,69 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
     return true;
 }
 
+void SettingsObj::findTagAlias(QString find_val, QString * alias)
+{
+    *alias = "";
+
+    for(int i = 0; i < tag_model->rowCount(); ++i)
+    {
+        if(tag_model->index(i, SettingsObj::AliasId).data().toString() == find_val)
+        {
+            *alias = tag_model->index(i, SettingsObj::AliasName).data().toString();
+            break;
+        }
+    }
+}
+
+QString SettingsObj::getTagId(QString name)
+{
+    for(int row = 0; row < tag_model->rowCount(); row++)
+    {
+        if(tag_model->item(row, AliasName)->text() == name)
+        {
+            return tag_model->item(row, AliasId)->text();
+        }
+    }
+
+    return "";
+}
+
+QString SettingsObj::getDevId(QString name)
+{
+    for(int row_dev = 0; row_dev < dev_model->rowCount(); row_dev++)
+    {
+        for(int row_reader = 0; row_reader < dev_model->item(row_dev)->rowCount(); row_reader++)
+        {
+            if(dev_model->item(row_dev)->child(row_reader, AliasName)->text() == name)
+            {
+                return dev_model->item(row_dev)->text() + " " +
+                        dev_model->item(row_dev)->child(row_reader, AliasId)->text();
+            }
+        }
+    }
+
+    return "";
+}
+
+void SettingsObj::findDevAlias(QString find_val, QString * alias)
+{
+    *alias = "";
+
+    for(int i = 0; i < dev_model->rowCount(); ++i)
+    {
+        for(int j = 0; j < dev_model->item(i)->rowCount(); j++)
+        {
+            QString id = dev_model->item(i)->data(Qt::DisplayRole).toString() + " " +
+                         dev_model->item(i)->child(j, SettingsObj::AliasId)->data(Qt::DisplayRole).toString();
+            if(id == find_val)
+            {
+                *alias = dev_model->item(i)->child(j, SettingsObj::AliasName)->data(Qt::DisplayRole).toString();
+                return;
+            }
+        }
+    }
+}
+
 /**
   * ƒобавление записи в файл журнала
   *
@@ -225,8 +276,7 @@ void SettingsObj::readDevInfo()
     R245_DEV_INFO info;
     short int dev_ctr = 0;
 
-
-    dev_model->clear();
+    //dev_model->clear();
     utils.R245_CloseAllDev();
 
     QStringList dev_header;
@@ -272,11 +322,6 @@ void SettingsObj::readSettingNodes(const QDomNode &node)
                 {
                     QDomElement child_el = dom_node.firstChildElement();
                     addTagToModel(dom_el.attribute("id", ""), child_el.text());
-                    //qDebug()<< "set tag";
-                } else if(dom_el.tagName() == "dev_name")
-                {
-                    QDomElement child_el = dom_node.firstChildElement();
-                    addDevNameToModel(dom_el.attribute("id", ""), child_el.text());
                 } else if(dom_el.tagName() == "root_dev")
                 {
                     ulong id = dom_el.attribute("id", "").toULong();
@@ -391,15 +436,15 @@ QAbstractItemModel * SettingsObj::getModel(TypeModel type_model)
 {
     switch(type_model)
     {
-        case TagModel:
+        case TagTypeModel:
             return tag_model;
-        case DevModel:
+        case DevTypeModel:
             return dev_model;
-        case EventModel:
+        case EventTypeModel:
             return event_model;
-        case TagModelProxy:
+        case TagTypeModelProxy:
             return tag_model_proxy;
-        case EventModelProxy:
+        case EventTypeModelProxy:
             return event_model_proxy;
     }
     return NULL;
@@ -419,24 +464,6 @@ QDomElement SettingsObj::addTagToDom(QDomDocument dom_doc,
                                 const QString &name)
 {
     QDomElement dom_element = makeElement(dom_doc, "tag", id, "");
-
-    dom_element.appendChild(makeElement(dom_doc, "name", "", name));
-
-    return dom_element;
-}
-
-/**
-  * ƒобавление синонимов устройств в структуру xml документа
-  *
-  * @param dom_doc - документ, куда следует поместить данные
-  * @param id - ссылка на идентификатор устройства
-  * @param name - ссылка на синоним устройства
-  *
-  * @return возвращает QDomElement, пригодный дл€ вставки в структуру xml.
-  */
-QDomElement SettingsObj::addDevNameToDom(QDomDocument dom_doc, const QString &id, const QString &name)
-{
-    QDomElement dom_element = makeElement(dom_doc, "dev_name", id, "");
 
     dom_element.appendChild(makeElement(dom_doc, "name", "", name));
 
@@ -667,19 +694,6 @@ void SettingsObj::saveSetings()
             tag_dom.appendChild(addTagToDom(doc, id, name));
         }
 
-        // —охран€ем настройки имен устройств
-        QDomElement dev_name_dom = makeElement(doc, "dev_names", "", "");
-
-        root_el.appendChild(dev_name_dom);
-
-        for(int row = 0; row < dev_name_model->rowCount(); ++row)
-        {
-            id = dev_name_model->data(dev_name_model->index(row, 0)).toString();
-            name = dev_name_model->data(dev_name_model->index(row, 1)).toString();
-
-            dev_name_dom.appendChild(addDevNameToDom(doc, id, name));
-        }
-
         // —охран€ем настройки устройств
         QDomElement dev_dom = makeElement(doc, "devices", "", "");
 
@@ -735,14 +749,6 @@ QDomElement SettingsObj::makeElement(QDomDocument &dom_doc,
     return dom_element;
 }
 
-void SettingsObj::addDevNameToModel(QString id, QString name)
-{
-    int row = 0/*dev_name_model->rowCount()*/;
-    dev_name_model->insertRow(row);
-    dev_name_model->setItem(row, 0, new QStandardItem(id));
-    dev_name_model->setItem(row, 1, new QStandardItem(name));
-}
-
 void SettingsObj::addTagToModel(QString id, QString name)
 {
     int row = 0/*tag_model->rowCount()*/;
@@ -762,8 +768,8 @@ void SettingsObj::addEventToModel(QString id_dev, QString name,
 
     QString tag_name = "", dev_name = "";
 
-    //utils.findAlias(tag_model, id_tag, &tag_name);
-    //utils.findAlias(dev_name_model, id_dev, &dev_name);
+    findTagAlias(id_tag, &tag_name);
+    findDevAlias(id_dev, &dev_name);
 
     event_model->setItem(row, EvIdDev, new QStandardItem(id_dev));
     event_model->setItem(row, EvName, new QStandardItem(name));
@@ -888,7 +894,7 @@ void SettingsObj::addReaderToModel(unsigned char dev_num, unsigned char addr, QS
         items.append(new QStandardItem(dev->name));
     }
 
-    dev_model->item(dev_num)->appendRow(items);
+    dev_model->addReader(dev_num, items);
 
     int row = dev_model->item(dev_num)->rowCount() - 1;
     emit sigAddReader(dev_model->item(dev_num)->child(row));
@@ -970,7 +976,7 @@ void SettingsObj::deleteReaderFromModel(int dev_num, int reader_num)
     ulong id = dev_model->item(dev_num)->data(Qt::DisplayRole).toULongLong();
 
     dev_settings[id]->removeAt(reader_num);
-    dev_model->item(dev_num)->removeRow(reader_num);
+    dev_model->delReader(dev_num, reader_num);
 }
 
 void SettingsObj::addDevInfoToModel(R245_DEV_INFO * info)
@@ -1077,8 +1083,6 @@ SettingsObj::~SettingsObj()
     delete log_stream;
     delete tag_model;
     delete tag_model_proxy;
-    delete dev_name_model;
-    delete dev_name_model_proxy;
     delete dev_model;
     delete event_model;
 }

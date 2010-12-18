@@ -17,6 +17,8 @@
 #include <QDateTime>
 #include "monitor_filter.h"
 
+class SettingsObj;
+
 class Monitor
 {
 public:
@@ -63,7 +65,7 @@ public:
     QAbstractItemModel * getModel(bool proxy);
     void clear();
     void update();
-    //void updateAlias(QStandardItemModel * tag_model, QStandardItemModel * dev_name_model);
+    void updateAlias(SettingsObj * set_obj);
     QMap <int, QString> * getState();
 
 

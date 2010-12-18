@@ -19,8 +19,8 @@
 #include <QPainter>
 #include <QFileDialog>
 #include <QProgressDialog>
-#include "settings_obj.h"
 #include "monitor.h"
+#include "settings_obj.h"
 #include "ui_monitor_window.h"
 
 /**
@@ -84,6 +84,7 @@ private slots:
     void slotTagInform();
     void slotSaveFile();
     void slotClearMonitor();
+    void slotMonitorChanged(QStandardItem *);
 
     void slotPrintOK();
 };

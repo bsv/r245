@@ -21,6 +21,7 @@ private:
      Monitor * monitor_obj;
      void openFile(QLineEdit * le, QString caption);
 
+     QList<QString> tag_list;
      QList<QString> event_list;
      QList<QString> react_list;
      QList<QString> chanell_list;

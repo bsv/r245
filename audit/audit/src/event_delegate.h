@@ -29,6 +29,11 @@ class EventDelegate : public QItemDelegate
 {
     Q_OBJECT
 private:
+    SettingsObj * set_obj;
+
+    QList<QString> * tag_list;
+    QList<QString> * dev_list;
+
     /** Список возможных событий */
     QList<QString> * event_list;
 
@@ -39,7 +44,12 @@ private:
     QList<QString> * chanell_list;
 
 public:
-    EventDelegate(QList<QString> * event, QList<QString> * react, QList<QString> * chanell, QObject *parent = 0);
+    EventDelegate(QList<QString> * dev,
+                  QList<QString> * tag,
+                  QList<QString> * event,
+                  QList<QString> * react,
+                  QList<QString> * chanell,
+                  QObject *parent = 0);
 
     /**
       * @name Перегруженные функции класса QItemDelegate

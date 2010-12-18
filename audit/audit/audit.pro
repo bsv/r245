@@ -1,5 +1,5 @@
 QT = gui core xml
-CONFIG += qt warn_on release console
+CONFIG += qt warn_on release static
 DESTDIR = bin
 OBJECTS_DIR = build
 MOC_DIR = build
@@ -12,7 +12,8 @@ HEADERS = src/settings_window.h src/main_window.h src/utils.h src/monitor_window
     src/monitor.h \
     src/trans_parser.h \
     src/event_delegate.h \
-    src/monitor_filter.h
+    src/monitor_filter.h \
+    src/dev_model.h
 SOURCES = src/main.cpp \
     src/settings_window.cpp \
     src/main_window.cpp \
@@ -22,5 +23,6 @@ SOURCES = src/main.cpp \
     src/monitor.cpp \
     src/event_delegate.cpp \
     src/monitor_filter.cpp \
-    src/trans_parser.cpp
+    src/trans_parser.cpp \
+    src/dev_model.cpp
 TEMPLATE = app

@@ -11,6 +11,8 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
 {
     setupUi(this);
 
+    setWindowFlags(windowFlags() | Qt::WindowMinMaxButtonsHint);
+
     set_obj = set;
     monitor = mon;
 
@@ -25,6 +27,8 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
     monitor_view->verticalHeader()->hide();
     monitor_view->setEditTriggers(QAbstractItemView::NoEditTriggers);
 
+    monitor_view->resizeColumnsToContents();
+
     connect(&timer, SIGNAL(timeout()), SLOT(slotUpdateTrans()));
     connect(resetFilterBtn, SIGNAL(clicked()), SLOT(slotResetFilter()));
     connect(mw_tabs, SIGNAL(currentChanged(int)), SLOT(slotTabChanged()));
@@ -32,9 +36,16 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
     connect(save_file_button, SIGNAL(clicked()), SLOT(slotSaveFile()));
     connect(clear_button, SIGNAL(clicked()), SLOT(slotClearMonitor()));
 
+    connect(((QStandardItemModel *)monitor->getModel(false)), SIGNAL(itemChanged(QStandardItem*)), SLOT(slotMonitorChanged(QStandardItem *)));
+
     timer.start(REQ_PERIOD);
     slotResetFilter();
     setFilter();
+}
+
+void MonitorWindow::slotMonitorChanged(QStandardItem *)
+{
+    monitor_view->resizeColumnsToContents();
 }
 
 /**
@@ -224,8 +235,8 @@ void MonitorWindow::slotUpdateTrans()
     {
         R245_TRANSACT trans;
         short int status = 0;
-        QStandardItemModel * model = (QStandardItemModel *) set_obj->getModel(SettingsObj::DevModel);
-        int dev_count = set_obj->getModel(SettingsObj::DevModel)->rowCount();
+        QStandardItemModel * model = (QStandardItemModel *) set_obj->getModel(SettingsObj::DevTypeModel);
+        int dev_count = set_obj->getModel(SettingsObj::DevTypeModel)->rowCount();
         short trans_ctr = 0;
 
         for(int dev_num = 0; dev_num < dev_count; dev_num++)
@@ -239,17 +250,17 @@ void MonitorWindow::slotUpdateTrans()
                     // Запрещаем очищать модель когда идет считывание транзакций
                     clear_button->setEnabled(false);
 
-                    //QString tag_name = "", dev_name = "";
-                    //QAbstractItemModel * tag_model = set_obj->getModel(SettingsObj::TagModel);
-                    //QAbstractItemModel * dev_name_model = set_obj->getModel(SettingsObj::DevNameModel);
+                    QString id = model->item(dev_num)->data(Qt::DisplayRole).toString() + " " + addr;
 
-                    //utils.findAlias(tag_model, QString().setNum(trans.tid), &tag_name);
-                    //utils.findAlias(dev_name_model, QString().setNum(dev_num), &dev_name);
+                    QString tag_name = "", dev_name = "";
 
-                    QString id = QString().setNum(dev_num) + QString().setNum(dev_row);
+                    set_obj->findTagAlias(QString().setNum(trans.tid), &tag_name);
+                    set_obj->findDevAlias(id, &dev_name);
+
                     monitor->addTransToModel(id, &trans, "", ""/*tag_name, dev_name*/);
-                    set_obj->addLogNode(QString().setNum(dev_num), &trans); // add node to log file
-                    //eventHandler(QString().setNum(dev_num), &trans, tag_name, dev_name);
+                    set_obj->addLogNode(id, &trans); // add node to log file
+                    eventHandler(id, &trans, tag_name, dev_name);
+                    monitor_view->resizeColumnsToContents();
 
                     monitor->update(); // При каждой транзакции сортирует всю таблицу (это плохо)
 
@@ -288,7 +299,7 @@ Monitor * MonitorWindow::getMonitor()
   */
 void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans, QString tag_name, QString dev_name)
 {
-    QStandardItemModel * event_model = (QStandardItemModel *)set_obj->getModel(SettingsObj::EventModel);
+    QStandardItemModel * event_model = (QStandardItemModel *)set_obj->getModel(SettingsObj::EventTypeModel);
 
     int row_count = event_model->rowCount();
     QMap <int, QString> * state = monitor->getState();
@@ -335,7 +346,15 @@ void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans, QString 
 
 
                     utils.showMessage(QMessageBox::Information, event_name, msg);
-                    trans->code = 0x12F;
+
+                    if(event_name == "таг потерян")
+                    {
+                        trans->code = 0x12F;
+                    } else
+                    {
+                        trans->code = 0x130;
+                    }
+
                     set_obj->addLogNode(dev_num, trans);
                     monitor->addTransToModel(dev_num, trans, tag_name, dev_name);
                 }

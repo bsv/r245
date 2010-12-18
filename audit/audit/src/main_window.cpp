@@ -13,6 +13,7 @@ MainWindow::MainWindow( QWidget * parent, Qt::WFlags f)
     monitor = new Monitor();
 
     swindow = new SettingsWindow(set_obj, monitor, this);
+
     mwindow = new MonitorWindow(set_obj, monitor, this);
 
     connect(settings_button, SIGNAL(clicked()), swindow, SLOT(show()));

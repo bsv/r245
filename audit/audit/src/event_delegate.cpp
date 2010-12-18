@@ -8,12 +8,16 @@
   * @param chanell - указатель на список каналов
   * @param parent  - указатель на объект предок
   */
-EventDelegate::EventDelegate(QList<QString> *event, QList<QString> *react, QList<QString> *chanell, QObject *parent):
-        QItemDelegate(parent)
+EventDelegate::EventDelegate(QList<QString> *dev, QList<QString> * tag,
+        QList<QString> *event, QList<QString> *react,
+        QList<QString> *chanell, QObject *parent):
+            QItemDelegate(parent)
 {
     event_list = event;
     chanell_list = chanell;
     react_list = react;
+    tag_list = tag;
+    dev_list = dev;
 }
 
 QWidget * EventDelegate::createEditor(QWidget *parent,
@@ -24,6 +28,14 @@ QWidget * EventDelegate::createEditor(QWidget *parent,
 
     switch(index.column())
     {
+        case SettingsObj::EvNameDev:
+            editor = new QComboBox(parent);
+            ((QComboBox *)editor)->addItems(*dev_list);
+            break;
+        case SettingsObj::EvNameTag:
+            editor = new QComboBox(parent);
+            ((QComboBox *)editor)->addItems(*tag_list);
+            break;
         case SettingsObj::EvReact:
             editor = new QComboBox(parent);
             ((QComboBox *)editor)->addItems(*react_list);
@@ -65,12 +77,13 @@ void EventDelegate::setEditorData(QWidget *editor,
 
 void EventDelegate::setModelData(QWidget *editor, QAbstractItemModel *model, const QModelIndex &index) const
 {
-    qDebug("setModelData");
     QSortFilterProxyModel * model_proxy = qobject_cast<QSortFilterProxyModel *>(model);
     QStandardItemModel * model_source = qobject_cast<QStandardItemModel *>(model_proxy->sourceModel());
 
     switch(index.column())
     {
+        case SettingsObj::EvNameDev:
+        case SettingsObj::EvNameTag:
         case SettingsObj::EvChanell:
         case SettingsObj::EvEvent:
         {

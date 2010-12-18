@@ -11,6 +11,7 @@
 #include <QMenu>
 #include "global.h"
 #include "monitor.h"
+#include "dev_model.h"
 
 /** @name Константы для активации каналов
   * Если оба канала активны, то поле HEAD_DEV_INFO_CHANNEL
@@ -36,11 +37,11 @@ public:
       * идентификаторам моделей, которые содержит класс
       */
     enum TypeModel {
-        TagModel,
-        DevModel,
-        EventModel,
-        TagModelProxy,
-        EventModelProxy
+        TagTypeModel,
+        DevTypeModel,
+        EventTypeModel,
+        TagTypeModelProxy,
+        EventTypeModelProxy
     };
 
     /**
@@ -98,7 +99,6 @@ public:
     QAbstractItemModel * getModel(TypeModel type_model);
     void setFilterWildCard(QString ex, TypeModel type_model);
     void addTagToModel(QString id = "", QString name = "");
-    void addDevNameToModel(QString id = "", QString name = "");
     void addEventToModel(QString id_dev = "",
                          QString name = "",
                          QString chanell = "",
@@ -121,6 +121,10 @@ public:
     bool getReaderSettings(unsigned char dev_num, DEV_INFO * dev);
     unsigned char getFreeAddress(unsigned char dev_num);
     bool isFreeAddress(unsigned char dev_num, unsigned char addr);
+    void findTagAlias(QString find_val, QString * alias);
+    void findDevAlias(QString find_val, QString * alias);
+    QString getDevId(QString name);
+    QString getTagId(QString name);
 private:
 
     /// Указатель на файл настроек
@@ -135,14 +139,8 @@ private:
     /// Указатель на модель отображения результатов поиска по меткам
     QSortFilterProxyModel * tag_model_proxy;
 
-    /// Указатель на модель синонимов для устройств
-    QStandardItemModel * dev_name_model;
-
-    /// Указатель на модель отображения результатов поиска по устройствам
-    QSortFilterProxyModel * dev_name_model_proxy;
-
     /// Указатель на модель, хранящую информацию о устройствах
-    QStandardItemModel * dev_model;
+    DevModel * dev_model;
 
     /// Указатель на модель, хранящую настройку событий
     QStandardItemModel * event_model;
@@ -166,9 +164,6 @@ private:
     QDomElement addTagToDom(QDomDocument dom_doc,
                        const QString & id,
                        const QString & name);
-    QDomElement addDevNameToDom(QDomDocument dom_doc,
-                                const QString & id,
-                                const QString & name);
     QDomElement addDevToDom(QDomDocument dom_doc, ulong id);
     QDomElement addEventToDom(QDomDocument dom_doc, int row);
     void initSetModels();

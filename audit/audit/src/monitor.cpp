@@ -74,7 +74,8 @@ void Monitor::initMas()
     state[0x12C] = "Ожидание времени открытых ворот";
     state[0x12D] = "Ворота закрылись";
     state[0x12E] = "Ворота не закрылись в установленное время";
-    state[0x12F] = "Оператор среагировал на событие";
+    state[0x12F] = "Оператор среагировал на событие: таг потерян";
+    state[0x130] = "Оператор среагировал на событие: обнаружен новый таг";
 }
 
 /**
@@ -191,61 +192,39 @@ QAbstractItemModel * Monitor::getModel(bool proxy)
   * @param tag_model - ссылка на модель, хранящей данные о псевдонимах меток.
   * @param dev_name_model - ссылка на модель, хранящей данные о псевдонимах устройств.
   */
-/*void Monitor::updateAlias(QStandardItemModel * tag_model, QStandardItemModel * dev_name_model)
+void Monitor::updateAlias(SettingsObj * set_obj)
 {
     QStandardItem * dev_item, * tag_item;
 
     int row_count = monitor_model->rowCount();
-    int tag_row_count = tag_model->rowCount();
-    int dev_row_count = dev_name_model->rowCount();
-
-    int row_alias = 0;
-    bool find_tag = false, find_dev = false;
 
     for(int row = 0; row < row_count; row++)
     {
         dev_item = monitor_model->item(row, DevNumAttr);
         tag_item = monitor_model->item(row, TagIdAttr);
 
-        row_alias = 0;
-        find_tag = false;
-        find_dev = false;
+        QString tag_name = "", dev_name = "";
 
-        while(row_alias < tag_row_count || row_alias < dev_row_count)
+        set_obj->findTagAlias(tag_item->text(), &tag_name);
+        set_obj->findDevAlias(dev_item->text(), &dev_name);
+
+        if(tag_name != "")
         {
-            if(row_alias < tag_row_count)
-            {
-                if(tag_item->text() == tag_model->item(row_alias, SettingsObj::AliasId)->text())
-                {
-                    monitor_model->item(row, TagNameAttr)->setText(
-                            tag_model->item(row_alias, SettingsObj::AliasName)->text());
-                    find_tag = true;
-                }
-            }
-
-            if(row_alias < dev_row_count)
-            {
-                if(dev_item->text() == dev_name_model->item(row_alias, SettingsObj::AliasId)->text())
-                {
-                    monitor_model->item(row, DevNameAttr)->setText(
-                            dev_name_model->item(row_alias, SettingsObj::AliasName)->text());
-                    find_dev = true;
-                }
-            }
-            row_alias++;
-        }
-
-        if(!find_tag)
+            monitor_model->item(row, TagNameAttr)->setText(tag_name);
+        } else
         {
             monitor_model->item(row, TagNameAttr)->setText(tag_item->text());
         }
 
-        if(!find_dev)
+        if(dev_name != "")
+        {
+            monitor_model->item(row, DevNameAttr)->setText(dev_name);
+        } else
         {
             monitor_model->item(row, DevNameAttr)->setText(dev_item->text());
         }
     }
-}*/
+}
 
 Monitor::~Monitor()
 {

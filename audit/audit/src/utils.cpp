@@ -52,6 +52,12 @@ void Utils::showMessage(QMessageBox::Icon icon, QString header, QString msg)
             icon,
             header,
             msg);
+
+    QFont font;
+
+    font.setPointSize(15);
+
+    pmbx->setFont(font);
     pmbx->exec();
     delete pmbx;
 }
@@ -74,20 +80,6 @@ bool Utils::unloadLibrary()
     }
     
     return false;
-}
-
-/*void Utils::findAlias(QAbstractItemModel * model, QString find_val, QString * alias)
-{
-    *alias = "";
-
-    for(int i = 0; i < model->rowCount(); ++i)
-    {
-        if(model->index(i, SettingsObj::AliasId).data().toString() == find_val)
-        {
-            *alias = model->index(i, SettingsObj::AliasName).data().toString();
-            break;
-        }
-    }
 }
 
 void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, bool clear)
@@ -116,8 +108,9 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
 
     } else if(alias_model->objectName() == "dev_model")// dev_model
     {
-        alias_id = alias_item->parent()->child(alias_item->row(), SettingsObj::AliasId)->data(Qt::DisplayRole).toString();
-        alias_name = alias_item->parent()->child(alias_item->row(), SettingsObj::AliasName)->data(Qt::DisplayRole).toString();
+        alias_id = alias_item->parent()->text() + " " +
+                   alias_item->parent()->child(alias_item->row(), SettingsObj::AliasId)->text();
+        alias_name = alias_item->parent()->child(alias_item->row(), SettingsObj::AliasName)->text();
 
         if(model->objectName() == "monitor_model")
         {
@@ -134,6 +127,8 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
         showMessage(QMessageBox::Warning, "", "Смена псевдонимов не возможна");
         return;
     }
+
+    qDebug() << alias_id;
 
     for(int row = 0; row < row_count; row++)
     {
@@ -152,7 +147,7 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
             }
         }
     }
-}*/
+}
 
 int Utils::timeToSec(QTime time)
 {

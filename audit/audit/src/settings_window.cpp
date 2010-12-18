@@ -8,11 +8,12 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
 {
     setupUi(this);
 
+    setWindowFlags(windowFlags() | Qt::WindowMinMaxButtonsHint);
+
     menu = new QMenu(this);
     menu->addAction("Получить настройки", this, SLOT(slotGetDevSettings()));
     menu->addAction("Обновить адрес", this, SLOT(slotUpdAddr()));
     menu->addAction("Удалить устройство", this, SLOT(slotDeleteDev()));
-
 
     set_menu_tab->setTabEnabled(1, false);
 
@@ -31,16 +32,18 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     event_list << "обнаружен новый таг" << "таг потерян";
     chanell_list << "1" << "2";
 
-    tag_view->setModel(set_obj->getModel(SettingsObj::TagModelProxy));
+    tag_view->setModel(set_obj->getModel(SettingsObj::TagTypeModelProxy));
 
-    dev_view->setModel(set_obj->getModel(SettingsObj::DevModel));
+    dev_view->setModel(set_obj->getModel(SettingsObj::DevTypeModel));
     dev_view->installEventFilter(this);
     dev_view->setObjectName("dev_view");
 
-    event_view->setModel(set_obj->getModel(SettingsObj::EventModelProxy));
+    event_view->setModel(set_obj->getModel(SettingsObj::EventTypeModelProxy));
     event_view->hideColumn(SettingsObj::EvIdDev);
     event_view->hideColumn(SettingsObj::EvIdTag);
-    event_view->setItemDelegate(new EventDelegate(&event_list, &react_list, &chanell_list, event_view));
+    event_view->setItemDelegate(new EventDelegate(((DevModel*)dev_view->model())->getDevList(),
+                                                  &tag_list, &event_list, &react_list,
+                                                  &chanell_list, event_view));
 
     connect(settings_button, SIGNAL(clicked()), SLOT(slotOpenSettings()));
     connect(log_button, SIGNAL(clicked()), SLOT(slotOpenLog()));
@@ -63,11 +66,11 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(new_settings_btn, SIGNAL(clicked()), SLOT(slotNewSettings()));
     connect(dev_view, SIGNAL(doubleClicked(QModelIndex)), SLOT(slotAddDev(QModelIndex)));
 
-    QStandardItemModel * event_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::EventModel);
+    QStandardItemModel * event_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::EventTypeModel);
     connect(event_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotEventDataChanged(QStandardItem*)));
 
-    QStandardItemModel * tag_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::TagModel);
-    QStandardItemModel * dev_model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevModel);
+    QStandardItemModel * tag_model = (QStandardItemModel*)set_obj->getModel(SettingsObj::TagTypeModel);
+    QStandardItemModel * dev_model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevTypeModel);
 
     connect(tag_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
     connect(dev_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotDevDataChanged(QStandardItem*)));
@@ -176,7 +179,10 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
         if(dev != NULL)
         {
             dev->name = item->text();
+            ((DevModel *)item->model())->changeReader(item->parent()->row(), item->row());
             slotAliasChanged(item);
+
+            utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
         } else
         {
             item->setText("");
@@ -267,64 +273,60 @@ void SettingsWindow::slotNewSettings()
 
 void SettingsWindow::slotAliasChanged(QStandardItem *item)
 {
+    if(item->model()->objectName() == "tag_model")
+    {
+        if(item->column() == SettingsObj::AliasName)
+        {
+            tag_list[item->row()] = item->text();
+        }
+    }
+
     if(!block_alias_change)
     {
-        //utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
-        //utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventModel), false);
+        utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
+        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
     }
+
+    event_view->resizeColumnsToContents();
+    tag_view->resizeColumnsToContents();
 }
 
 void SettingsWindow::slotEventDataChanged(QStandardItem *item)
 {
-    /*if(item->column() == SettingsObj::EvNameDev || item->column() == SettingsObj::EvNameTag)
+
+    if(item->column() == SettingsObj::EvNameDev || item->column() == SettingsObj::EvNameTag)
     {
         int id_attr;
-        SettingsObj::TypeModel model_type;
-        bool is_num = false;
+        QString id;
 
         if(item->column() == SettingsObj::EvNameDev)
         {
+            id = set_obj->getDevId(item->text());
             id_attr = SettingsObj::EvIdDev;
-            model_type = SettingsObj::DevNameModel;
         } else
         {
+            id = set_obj->getTagId(item->text());
             id_attr = SettingsObj::EvIdTag;
-            model_type = SettingsObj::TagModel;
         }
 
-        item->text().toInt(&is_num);
+        item->model()->blockSignals(true);
+        item->model()->item(item->row(), id_attr)->setText(id);
+        item->model()->blockSignals(false);
 
-        if(is_num)
-        {
-            QString name = "";
 
-            item->model()->blockSignals(true);
+    }
 
-            utils.findAlias(set_obj->getModel(model_type), item->text(), &name);
-            item->model()->item(item->row(), id_attr)->setText(item->text());
-
-            if(name != "")
-            {
-                item->setText(name);
-            }
-            item->model()->blockSignals(false);
-
-        } else {
-            QString id_val = item->model()->item(item->row(), id_attr)->text();
-            item->setText(id_val);
-        }
-    }*/
-
+    event_view->resizeColumnsToContents();
 }
 
 void SettingsWindow::slotFindEvent()
 {
-    set_obj->setFilterWildCard(find_event_le->text() + "*", SettingsObj::EventModelProxy);
+    set_obj->setFilterWildCard(find_event_le->text() + "*", SettingsObj::EventTypeModelProxy);
 }
 
 void SettingsWindow::slotFindTag()
 {
-    set_obj->setFilterWildCard(find_tag_le->text() + "*", SettingsObj::TagModelProxy);
+    set_obj->setFilterWildCard(find_tag_le->text() + "*", SettingsObj::TagTypeModelProxy);
 }
 
 void SettingsWindow::slotSynchTime()
@@ -386,7 +388,7 @@ void SettingsWindow::slotSaveSetings()
             unsigned char dist1 = dist1_le->text().toInt();
             unsigned char dist2 = dist2_le->text().toInt();
 
-            QStandardItemModel * model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevModel);
+            QStandardItemModel * model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevTypeModel);
             ulong id = model->item(row)->data(Qt::DisplayRole).toULongLong();
 
             DEV_INFO * dev = set_obj->getDevSettings(id, addr);
@@ -526,12 +528,11 @@ void SettingsWindow::slotAddDev(QModelIndex index)
 void SettingsWindow::slotDeleteDev()
 {   
     QModelIndex index = dev_view->selectionModel()->currentIndex();
-    int row = index.row();
 
     // Если выбран дочерний элемент (устройство считывателя)
-    if((row != -1) && isReaderDev(index))
+    if(index.isValid() && isReaderDev(index))
     {
-        set_obj->deleteReaderFromModel(index.parent().row(), row);
+        set_obj->deleteReaderFromModel(index.parent().row(), index.row());
     }
 }
 
@@ -565,7 +566,7 @@ void SettingsWindow::slotDevClick(QModelIndex qmi)
         int row = (dev_coord & 0xFF00) >> 8;
         int dev_row = (dev_coord & 0x00FF) - 1;
 
-        QStandardItemModel * model = (QStandardItemModel *) set_obj->getModel(SettingsObj::DevModel);
+        QStandardItemModel * model = (QStandardItemModel *) set_obj->getModel(SettingsObj::DevTypeModel);
 
         uint addr = model->item(row)->child(dev_row)->data(Qt::DisplayRole).toUInt();
 
@@ -592,8 +593,10 @@ void SettingsWindow::slotAdd()
 {
     if(tag_tab->isVisible())
     {
+        tag_list.push_front("");
         find_tag_le->setText("");
         set_obj->addTagToModel();
+
     } else if(event_tab->isVisible())
     {
         find_event_le->setText("");
@@ -609,11 +612,11 @@ void SettingsWindow::slotDelete()
     if(tag_tab->isVisible())
     {
         table_view = tag_view;
-        type_model = SettingsObj::TagModel;
+        type_model = SettingsObj::TagTypeModel;
     } else if(event_tab->isVisible())
     {
         table_view = event_view;
-        type_model = SettingsObj::EventModel;
+        type_model = SettingsObj::EventTypeModel;
     }
 
     int row = table_view->selectionModel()->currentIndex().row();
@@ -623,8 +626,13 @@ void SettingsWindow::slotDelete()
         // column = 0 - без разницы чему оно равно. В utils.changeAlias по нему определяется тип модели данных.
         QStandardItem * item = ((QStandardItemModel *)set_obj->getModel(type_model))->item(row, 0);
 
-        //utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
-        //utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventModel), true);
+        if(type_model == SettingsObj::TagTypeModel)
+        {
+            tag_list.removeAt(item->row());
+        }
+
+        utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
+        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
 
         set_obj->getModel(type_model)->removeRow(row);
     }
@@ -644,8 +652,7 @@ void SettingsWindow::slotOpenSettings(bool dialog)
             event_view->hideColumn(SettingsObj::EvIdTag);
             set_menu_tab->setTabEnabled(1, true);
 
-            /*monitor_obj->updateAlias((QStandardItemModel *)set_obj->getModel(SettingsObj::TagModel),
-                                     (QStandardItemModel *)set_obj->getModel(SettingsObj::DevNameModel));*/
+            monitor_obj->updateAlias(set_obj);
             block_alias_change = false;
             return;
         }
@@ -665,8 +672,7 @@ void SettingsWindow::slotOpenLog(bool dialog)
         monitor_obj->update();
     }
 
-    /*monitor_obj->updateAlias((QStandardItemModel *)set_obj->getModel(SettingsObj::TagModel),
-                             (QStandardItemModel *)set_obj->getModel(SettingsObj::DevNameModel));*/
+    monitor_obj->updateAlias(set_obj);
 }
 
 void SettingsWindow::openFile(QLineEdit * le, QString caption)
