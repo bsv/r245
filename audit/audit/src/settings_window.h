@@ -34,6 +34,7 @@ private:
     short int getDevCoord(QModelIndex index);
     bool isReaderDev(QModelIndex index);
     void updateSettings(DEV_INFO * dev);
+    void updateTagList();
 
 protected:
         virtual bool eventFilter(QObject *obj, QEvent *event);

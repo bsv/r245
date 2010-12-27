@@ -1,6 +1,7 @@
 #include "utils.h"
 #include "settings_obj.h"
 #include <QDebug>
+#include <QProgressDialog>
 
 Utils::Utils()
 {
@@ -98,22 +99,27 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
         alias_name = alias_model->index(alias_item->row(), SettingsObj::AliasName).data().toString();
         if(model->objectName() == "monitor_model")
         {
+
             id_attr = Monitor::TagIdAttr;
             name_attr = Monitor::TagNameAttr;
         } else // event_model
         {
+
             id_attr = SettingsObj::EvIdTag;
             name_attr = SettingsObj::EvNameTag;
         }
 
     } else if(alias_model->objectName() == "dev_model")// dev_model
     {
+
         alias_id = alias_item->parent()->text() + " " +
                    alias_item->parent()->child(alias_item->row(), SettingsObj::AliasId)->text();
         alias_name = alias_item->parent()->child(alias_item->row(), SettingsObj::AliasName)->text();
 
         if(model->objectName() == "monitor_model")
         {
+            qDebug() << "Dev_monitor_model";
+
             id_attr = Monitor::DevNumAttr;
             name_attr = Monitor::DevNameAttr;
         }
@@ -128,10 +134,18 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
         return;
     }
 
-    qDebug() << alias_id;
+
+    QProgressDialog progress("Применение синонимов в зависимых таблицах", "&Cancel", 0, row_count-1);
+    progress.setWindowTitle("Пожалуйста подождите...");
+    progress.setMinimumDuration(0);
+    progress.setAutoClose(true);
+    progress.setModal(true);
 
     for(int row = 0; row < row_count; row++)
     {
+        progress.setValue(row);
+        qApp->processEvents();
+
         item_model = model->item(row, id_attr);
 
         if(item_model->text() == alias_id)
@@ -143,10 +157,13 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
                 model->blockSignals(false);
             } else
             {
+                // Очень много времени отнимает, если не активно окно монитора !!!
                 model->item(row, name_attr)->setText(alias_name);
             }
         }
     }
+
+    qDebug() << "Alias changed";
 }
 
 int Utils::timeToSec(QTime time)

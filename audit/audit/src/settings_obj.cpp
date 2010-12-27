@@ -285,7 +285,7 @@ void SettingsObj::readDevInfo()
     dev_model->setHorizontalHeaderLabels(dev_header);
 
     //TEST
-    /*short int static ctr = 0;
+   /*short int static ctr = 0;
     info.desc[0] = 'T';
     info.desc[1] = '\0';
     info.id = ctr++;

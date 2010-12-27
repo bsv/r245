@@ -75,6 +75,8 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(tag_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
     connect(dev_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotDevDataChanged(QStandardItem*)));
     connect(set_obj, SIGNAL(sigAddReader(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
+
+    updateTagList();
 }
 
 bool SettingsWindow::eventFilter(QObject *obj, QEvent *event)
@@ -271,6 +273,17 @@ void SettingsWindow::slotNewSettings()
     }
 }
 
+void SettingsWindow::updateTagList()
+{
+    tag_list.clear();
+
+    for(int row = 0; row < tag_view->model()->rowCount(); row++)
+    {
+        QString data = tag_view->model()->index(row, SettingsObj::AliasName).data().toString();
+        tag_list.push_back(data);
+    }
+}
+
 void SettingsWindow::slotAliasChanged(QStandardItem *item)
 {
     if(item->model()->objectName() == "tag_model")
@@ -288,7 +301,7 @@ void SettingsWindow::slotAliasChanged(QStandardItem *item)
     }
 
     event_view->resizeColumnsToContents();
-    tag_view->resizeColumnsToContents();
+    //tag_view->resizeColumnsToContents();
 }
 
 void SettingsWindow::slotEventDataChanged(QStandardItem *item)
