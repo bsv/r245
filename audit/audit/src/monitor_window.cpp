@@ -250,14 +250,14 @@ void MonitorWindow::slotUpdateTrans()
                     // Запрещаем очищать модель когда идет считывание транзакций
                     clear_button->setEnabled(false);
 
-                    QString id = model->item(dev_num)->data(Qt::DisplayRole).toString() + " " + addr;
+                    QString id = model->item(dev_num)->data(Qt::DisplayRole).toString() + " " + QString().setNum(addr);
 
                     QString tag_name = "", dev_name = "";
 
                     set_obj->findTagAlias(QString().setNum(trans.tid), &tag_name);
                     set_obj->findDevAlias(id, &dev_name);
 
-                    monitor->addTransToModel(id, &trans, "", ""/*tag_name, dev_name*/);
+                    monitor->addTransToModel(id, &trans, tag_name, dev_name);
                     set_obj->addLogNode(id, &trans); // add node to log file
                     eventHandler(id, &trans, tag_name, dev_name);
                     monitor_view->resizeColumnsToContents();

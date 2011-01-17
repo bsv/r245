@@ -285,7 +285,7 @@ void SettingsObj::readDevInfo()
     dev_model->setHorizontalHeaderLabels(dev_header);
 
     //TEST
-   /*short int static ctr = 0;
+    /*short int static ctr = 0;
     info.desc[0] = 'T';
     info.desc[1] = '\0';
     info.id = ctr++;
@@ -895,6 +895,7 @@ void SettingsObj::addReaderToModel(unsigned char dev_num, unsigned char addr, QS
     }
 
     dev_model->addReader(dev_num, items);
+    setAuditEn(dev_num, items[0]->text().toInt(), true);
 
     int row = dev_model->item(dev_num)->rowCount() - 1;
     emit sigAddReader(dev_model->item(dev_num)->child(row));
@@ -985,6 +986,14 @@ void SettingsObj::addDevInfoToModel(R245_DEV_INFO * info)
 
     if(!setActiveDev(row, true))
     {
+        /*uchar ver[55];
+
+        qDebug() << "Get ver";
+        utils.R245_GetVersion(0, 1, ver);
+
+        qDebug("VER = %s\n", ver);
+        qDebug() << "End Get ver";*/
+
         QStandardItem * id_item = new QStandardItem(QString().setNum(info->id));
         QStandardItem * desc_item = new QStandardItem(info->desc);
 

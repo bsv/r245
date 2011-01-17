@@ -15,6 +15,7 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     menu->addAction("Обновить адрес", this, SLOT(slotUpdAddr()));
     menu->addAction("Удалить устройство", this, SLOT(slotDeleteDev()));
 
+
     set_menu_tab->setTabEnabled(1, false);
 
     set_obj = set;
@@ -118,7 +119,7 @@ void SettingsWindow::slotUpdAddr()
 
         if(utils.R245_SetAddr(dev_num, addr))
         {
-            utils.showMessage(QMessageBox::Warning, "Смена адреса", "Ошибка смена адреса");
+            utils.showMessage(QMessageBox::Warning, "Смена адреса", "Ошибка смены адреса");
         }
     }
 }
@@ -342,34 +343,37 @@ void SettingsWindow::slotFindTag()
     set_obj->setFilterWildCard(find_tag_le->text() + "*", SettingsObj::TagTypeModelProxy);
 }
 
+// Переделать под широковещательный запрос
 void SettingsWindow::slotSynchTime()
 {
-    /*R245_RTC rtc_data;
-    QAbstractItemModel * model = set_obj->getModel(SettingsObj::DevModel);
-    short int dev_count = model->rowCount();
+    QModelIndex index = dev_view->selectionModel()->currentIndex();
 
-    for(int dev_num = 0; dev_num < dev_count; dev_num++)
+    QStandardItemModel * model = (QStandardItemModel*)dev_view->model();
+
+    uchar dev_count = model->rowCount();
+
+    for(uchar dev_num = 0; dev_num < dev_count; dev_num++)
     {
-        DEV_INFO * dev = set_obj->getDevSettings(model->data(model->index(dev_num, SettingsObj::Id)).toInt());
-        QDateTime clock = QDateTime::currentDateTime();
+        uchar reader_count = model->item(dev_num)->rowCount();
 
-        rtc_data.hour = clock.time().hour();
-        rtc_data.min = clock.time().minute();
-        rtc_data.sec = clock.time().second();
-        rtc_data.dow = clock.date().dayOfWeek();
-        rtc_data.year = clock.date().year();
-        rtc_data.month = clock.date().month();
-        rtc_data.day = clock.date().day();
+        for(uchar reader_num = 0; reader_num < reader_count; reader_num++)
+        {
+            QDateTime clock = QDateTime::currentDateTime();
+            R245_RTC rtc_data;
+            uchar dev_addr = model->index(dev_num, 0).child(reader_num, 0).data().toInt();;
 
-        if(!dev->active)
-            utils.R245_InitDev(dev_num);
+            rtc_data.hour = clock.time().hour();
+            rtc_data.min = clock.time().minute();
+            rtc_data.sec = clock.time().second();
+            rtc_data.dow = clock.date().dayOfWeek();
+            rtc_data.year = clock.date().year();
+            rtc_data.month = clock.date().month();
+            rtc_data.day = clock.date().day();
 
-        utils.R245_SetTimeRTC(dev_num, 1, &rtc_data);
-        utils.R245_SetDateRTC(dev_num, 1, &rtc_data);
-
-        if(!dev->active)
-            utils.R245_CloseDev(dev_num);
-    }*/
+            utils.R245_SetTimeRTC(dev_num, dev_addr, &rtc_data);
+            utils.R245_SetDateRTC(dev_num, dev_addr, &rtc_data);
+        }
+    }
 }
 
 void SettingsWindow::slotActChannel()
