@@ -276,7 +276,7 @@ void SettingsObj::readDevInfo()
     R245_DEV_INFO info;
     short int dev_ctr = 0;
 
-    //dev_model->clear();
+    dev_model->clear();
     utils.R245_CloseAllDev();
 
     QStringList dev_header;
@@ -596,16 +596,24 @@ short int SettingsObj::setChannelDev(int row, unsigned char addr, short int chan
     if(dev != NULL)
     {
         if(channel & CHANNEL_ACT_1)
+        {
             ft_status = utils.R245_SetChan(row, addr, 1, 1);
+        }
         else
+        {
             ft_status = utils.R245_SetChan(row, addr, 1, 0);
+        }
 
         if(!ft_status)
         {
             if(channel & CHANNEL_ACT_2)
+            {
                 ft_status = utils.R245_SetChan(row, addr, 2, 1);
+            }
             else
+            {
                 ft_status = utils.R245_SetChan(row, addr, 2, 0);
+            }
 
             if(!ft_status)
             {

@@ -74,6 +74,8 @@ R245_API FT_STATUS R245_CloseAllDev()
         for(i = 0; i < num_devs; i++)
         {
             ft_status = R245_CloseDev(i);
+            if(!ft_status)
+                printf("Close OK");
         }
     }
 
@@ -273,6 +275,13 @@ short int R245_PacketSend(FT_HANDLE ft_handle, unsigned char dev_addr,
 
     tx_packet_len = data_len + PACKET_HEAD_LEN + PACKET_END_LEN;
     R245_PacketForm(dev_addr, cmd, data, data_len, tx_buffer, &tx_packet_len);
+    
+    printf("PACKET\n");
+            for(i = 0; i < tx_packet_len; i ++)
+                printf("0x%x ", tx_buffer[i]);
+
+            printf("\n");
+
 
     ft_status = FT_Write(ft_handle, tx_buffer, tx_packet_len, &bytes_written);
     if (ft_status == FT_OK)
@@ -433,10 +442,13 @@ R245_API FT_STATUS R245_GetVersion(unsigned char num_dev,
     unsigned char rx_data_len = 0;
     R245_DEV_INFO info;
 
+    unsigned char ver[100];
+
     R245_GetDevInfo(num_dev, &info);
 
     return R245_PacketSend(info.ft_handle, addr_dev, GET_VERSION,
             NULL, 0, version, &rx_data_len);
+
 }
 
 R245_API FT_STATUS R245_GetNumTrans(unsigned char num_dev,
@@ -476,7 +488,11 @@ R245_API FT_STATUS R245_GetDamp(unsigned char num_dev,
             0, damp, &rx_data_len);
     if(!ft_status)
     {
-        printf("GET DAMP OK\n");
+        *damp = 31 - *damp; // Инвертируем значение дальности
+                      // Чтобы меньшей дальности соответствовало меньшее
+                      // значение damp (макс. 31).
+
+        printf("GET DAMP OK %d\n", *damp);
     }
 
     return ft_status;
@@ -493,12 +509,16 @@ R245_API FT_STATUS R245_SetDamp(unsigned char num_dev,
     unsigned char rx_data_len = 0;
     unsigned char cmd = (num_ch == 1)? SET_DAMP_1: SET_DAMP_2;
 
+    damp = 31 - damp; // Инвертируем значение дальности
+                      // Так как меньшей дальности соответствует большее 
+                      // значение damp (макс. 31).
+
     ft_status = R245_PacketSend(info.ft_handle, addr_dev, cmd, &damp,
             1, NULL, &rx_data_len);
 
     if(!ft_status)
     {
-        printf("SET DAMP OK\n");
+        printf("SET DAMP OK %d\n", damp);
     }
 
     return ft_status;
@@ -522,7 +542,7 @@ R245_API FT_STATUS R245_GetTime(unsigned char num_dev,
     if(!ft_status && rx_data_len == 2)
     {
         *time = ((short unsigned int)data[1] << 8) | data[0];
-        printf("GET Time OK\n");
+        printf("GET Time OK %d\n", time);
     }
 
     return ft_status;
@@ -542,7 +562,7 @@ R245_API FT_STATUS R245_ClearTrans(unsigned char num_dev, unsigned char addr_dev
 
     if(!ft_status)
     {
-        printf("GET Time OK\n");
+        printf("ClearTrans OK\n");
     }
 
     return ft_status;
@@ -612,7 +632,7 @@ R245_API FT_STATUS R245_GetChan(unsigned char num_dev, unsigned char addr_dev, u
         {
             channel &= 0xFD;
         }
-        printf("GET Chan OK\n");
+        printf("GET Chan OK %d\n", channel);
     }
 
     *ch = channel;
@@ -630,6 +650,20 @@ R245_API FT_STATUS R245_SetChan(unsigned char num_dev,
 
     unsigned char rx_data_len = 0;
     unsigned char cmd = (num_ch == 1)? SET_CHAN_1: SET_CHAN_2;
+
+    if(cmd == SET_CHAN_1)
+    {
+        if(enable)
+            printf("ENABLE CHAN 1");
+        else
+            printf("DISABLE CHAN 1");
+    } else
+    {
+        if(enable)
+            printf("ENABLE CHAN 2");
+        else
+            printf("DISABLE CHAN 2");
+    }
 
     ft_status = R245_PacketSend(info.ft_handle, addr_dev, cmd, &enable,
             1, NULL, &rx_data_len);
@@ -724,12 +758,14 @@ R245_API FT_STATUS R245_SetAddr(unsigned char num_dev, unsigned char addr_dev)
     data[0] = addr_dev;
     data[1] = ~addr_dev;
 
-    ft_status = R245_PacketSend(info.ft_handle, 255, SET_ADRESS, data,
-            2, NULL, &rx_data_len);
+    printf("Direct = %d, inv = %d\n", data[0], data[1]);
+
+    ft_status = R245_PacketSend(info.ft_handle, 0xFF, SET_ADDRESS, data,
+           2, NULL, &rx_data_len);
 
     if(!ft_status)
     {
-        printf("Set addr OK\n");
+        printf("Set addr OK %d\n", addr_dev);
     }
 
     return ft_status;

@@ -22,7 +22,7 @@
 #define SET_DATE        0xCA
 #define GET_TIME        0xCB
 #define GET_DATE        0xCC
-#define SET_ADRESS      0x1E
+#define SET_ADDRESS      0x1E
 #define GET_SENSORS     0xB6
 #define GET_NUM_TAGS_1	0x50
 #define GET_FIRST_TAG_1	0x51

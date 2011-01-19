@@ -137,6 +137,8 @@ void SettingsWindow::slotGetDevSettings()
 
         DEV_INFO * dev = set_obj->getDevSettings(id, addr);
 
+        qDebug() << "BEFORE = " << dev->channel;
+
         if(dev != NULL)
         {
             if(set_obj->getReaderSettings(dev_num, dev))
@@ -430,6 +432,8 @@ void SettingsWindow::slotSaveSetings()
                                       "Настройка каналов",
                                       "Невозможно обновить настройки каналов");
                 }
+                set_obj->setChannelDev(row, dev->addr, channel); // сменяет настройки каналов, когда два раза
+                                                                 // вызывается данная команда
             }
             if(dev->time1 != time1)
             {
