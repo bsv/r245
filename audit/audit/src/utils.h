@@ -24,6 +24,7 @@ class Utils
 {
 private:
     QLibrary *lib;
+    short int dev_count; // ограничение на количество устройств
 
 public:
     Utils();
@@ -38,6 +39,8 @@ public:
     void showMessage(QMessageBox::Icon icon, QString header, QString msg);
     bool openFile(QFile * file, QFlags<QIODevice::OpenModeFlag> mode);
     bool closeFile(QFile *file);
+    void setDevCount(short int count);
+    short int getDevCount();
 
     // Import functions from libr245dll.dll
     /** @name Определение имен функций, импортируемых из библиотеки libr245dll.dll

@@ -8,6 +8,16 @@ Utils::Utils()
     lib = NULL;
 }
 
+void Utils::setDevCount(short int count)
+{
+    dev_count = count;
+}
+
+short int Utils::getDevCount()
+{
+    return dev_count;
+}
+
 bool Utils::loadLibrary(QString file_name)
 {
     

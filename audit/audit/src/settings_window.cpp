@@ -300,7 +300,7 @@ void SettingsWindow::slotAliasChanged(QStandardItem *item)
     if(!block_alias_change)
     {
         utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
-        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
+        //utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
     }
 
     event_view->resizeColumnsToContents();

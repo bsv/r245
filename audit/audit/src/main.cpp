@@ -35,6 +35,8 @@
   */
 Utils utils;
 
+QString key_word = "ANT";
+
 /**
   * Точка входа в программу.
   *
@@ -60,6 +62,27 @@ int main(int argc, char ** argv)
         utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека ftd2xx.dll");
     } else*/ if(utils.loadLibrary("libr245.dll"))
     {
+        // Начал реализовывать механизм защиты от незаконного распространения
+        if(!QFile::exists("key.txt"))
+        {
+            utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найден файл с ключом key.txt");
+            utils.setDevCount(0);
+        } else {
+
+            QFile key_file("key.txt");
+
+            utils.openFile(&key_file, QIODevice::ReadOnly);
+
+            QTextStream kstr(&key_file);
+            QString key = kstr.readAll();
+
+            qDebug() << "KEY" << key;
+
+            utils.setDevCount(255); // ограничение на работу с 255 устройствами
+
+            utils.closeFile(&key_file);
+        }
+        //====================================================================
         MainWindow win;
         win.show();
 
