@@ -15,7 +15,6 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     menu->addAction("Обновить адрес", this, SLOT(slotUpdAddr()));
     menu->addAction("Удалить устройство", this, SLOT(slotDeleteDev()));
 
-
     set_menu_tab->setTabEnabled(1, false);
 
     set_obj = set;
@@ -26,14 +25,14 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     settings_le->setText(settings.value("/settings/settings_file", "").toString());
     log_le->setText(settings.value("/settings/log_file", "").toString());
 
-    slotOpenSettings(false);
-    slotOpenLog(false);
-
     react_list << "ничего не делать" << "выделить цветом" << "показать сообщение";
     event_list << "обнаружен новый таг" << "таг потерян";
     chanell_list << "1" << "2";
 
     tag_view->setModel(set_obj->getModel(SettingsObj::TagTypeModelProxy));
+
+    slotOpenSettings(false);
+    slotOpenLog(false);
 
     dev_view->setModel(set_obj->getModel(SettingsObj::DevTypeModel));
     dev_view->installEventFilter(this);
@@ -77,7 +76,7 @@ SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *pa
     connect(dev_model, SIGNAL(itemChanged(QStandardItem*)), SLOT(slotDevDataChanged(QStandardItem*)));
     connect(set_obj, SIGNAL(sigAddReader(QStandardItem*)), SLOT(slotAliasChanged(QStandardItem*)));
 
-    updateTagList();
+    //updateTagList();
 }
 
 bool SettingsWindow::eventFilter(QObject *obj, QEvent *event)
@@ -289,18 +288,19 @@ void SettingsWindow::updateTagList()
 
 void SettingsWindow::slotAliasChanged(QStandardItem *item)
 {
-    if(item->model()->objectName() == "tag_model")
-    {
-        if(item->column() == SettingsObj::AliasName)
-        {
-            tag_list[item->row()] = item->text();
-        }
-    }
 
     if(!block_alias_change)
     {
+
+        if(item->model()->objectName() == "tag_model")
+        {
+            if(item->column() == SettingsObj::AliasName)
+            {
+                tag_list[item->row()] = item->text();
+            }
+        }
         utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
-        //utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
+        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
     }
 
     event_view->resizeColumnsToContents();
@@ -628,7 +628,7 @@ void SettingsWindow::slotAdd()
 void SettingsWindow::slotDelete()
 {
     QTableView * table_view = NULL;
-    SettingsObj::TypeModel type_model;
+    SettingsObj::TypeModel type_model = SettingsObj::TagTypeModel;
 
     if(tag_tab->isVisible())
     {
@@ -674,6 +674,7 @@ void SettingsWindow::slotOpenSettings(bool dialog)
             set_menu_tab->setTabEnabled(1, true);
 
             monitor_obj->updateAlias(set_obj);
+            updateTagList();
             block_alias_change = false;
             return;
         }

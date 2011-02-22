@@ -172,7 +172,6 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
             }
         }
     }
-
     qDebug() << "Alias changed";
 }
 

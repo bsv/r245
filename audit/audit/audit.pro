@@ -1,5 +1,5 @@
 QT = gui core xml
-CONFIG += qt warn_on release static
+CONFIG += qt warn_on release console static
 DESTDIR = bin
 OBJECTS_DIR = build
 MOC_DIR = build
