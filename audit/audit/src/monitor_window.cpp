@@ -36,14 +36,14 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
     connect(save_file_button, SIGNAL(clicked()), SLOT(slotSaveFile()));
     connect(clear_button, SIGNAL(clicked()), SLOT(slotClearMonitor()));
 
-    connect(((MonitorModel *)monitor->getModel(false)), SIGNAL(itemChanged(QStandardItem*)), SLOT(slotMonitorChanged(QStandardItem *)));
+    connect(monitor, SIGNAL(signalResizeMonitorView()), SLOT(slotResizeMonitorView()));
 
     timer.start(REQ_PERIOD);
     slotResetFilter();
     setFilter();
 }
 
-void MonitorWindow::slotMonitorChanged(QStandardItem *)
+void MonitorWindow::slotResizeMonitorView()
 {
     monitor_view->resizeColumnsToContents();
 }
@@ -322,7 +322,7 @@ void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans, QString 
             {
                 QStandardItem * event_react = event_model->item(row, SettingsObj::EvReact);
                 QString react = event_react->text();
-                QStandardItemModel * monitor_model = (MonitorModel *) monitor->getModel(false);
+                QStandardItemModel * monitor_model = (QStandardItemModel *) monitor->getModel(false);
                 if(react == "выделить цветом")
                 {
                     for(int i = 0; i < monitor_model->columnCount(); ++i)

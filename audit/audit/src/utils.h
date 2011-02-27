@@ -31,9 +31,7 @@ public:
 
     bool loadLibrary(QString file_name);
     bool unloadLibrary();
-    //qint8 testFunc();
 
-    void changeAlias(QStandardItem * alias_item, QStandardItemModel * model, bool clear);
     int timeToSec(QTime time);
     QTime secToTime(int time_sec);
     void showMessage(QMessageBox::Icon icon, QString header, QString msg);

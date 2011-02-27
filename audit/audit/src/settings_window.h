@@ -36,6 +36,8 @@ private:
     void updateSettings(DEV_INFO * dev);
     void updateTagList();
 
+    void changeAlias(QStandardItem * alias_item, QStandardItemModel * model, bool clear);
+
 protected:
         virtual bool eventFilter(QObject *obj, QEvent *event);
 

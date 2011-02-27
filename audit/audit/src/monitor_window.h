@@ -84,7 +84,7 @@ private slots:
     void slotTagInform();
     void slotSaveFile();
     void slotClearMonitor();
-    void slotMonitorChanged(QStandardItem *);
+    void slotResizeMonitorView();
 
     void slotPrintOK();
 };

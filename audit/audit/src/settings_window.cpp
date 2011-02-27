@@ -2,6 +2,7 @@
 #include <QDebug>
 #include <QSortFilterProxyModel>
 #include "settings_window.h"
+#include <QProgressDialog>
 
 SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *parent):
     QDialog(parent)
@@ -186,7 +187,7 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
             ((DevModel *)item->model())->changeReader(item->parent()->row(), item->row());
             slotAliasChanged(item);
 
-            utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
+            changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
         } else
         {
             item->setText("");
@@ -194,6 +195,76 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
     }
 
     item->model()->blockSignals(false);
+}
+
+void SettingsWindow::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, bool clear)
+{
+    QStandardItemModel * alias_model = alias_item->model();
+    QString alias_id = "";
+    QString alias_name = "";
+
+    //int row_count = model->rowCount();
+    int id_attr, name_attr;
+
+    if(alias_model->objectName() == "tag_model")
+    {
+        alias_id = alias_model->index(alias_item->row(), SettingsObj::AliasId).data().toString();
+        alias_name = alias_model->index(alias_item->row(), SettingsObj::AliasName).data().toString();
+        if(model->objectName() == "monitor_model")
+        {
+
+            id_attr = Monitor::TagIdAttr;
+            name_attr = Monitor::TagNameAttr;
+        } else // event_model
+        {
+
+            id_attr = SettingsObj::EvIdTag;
+            name_attr = SettingsObj::EvNameTag;
+        }
+
+    } else if(alias_model->objectName() == "dev_model")// dev_model
+    {
+
+        alias_id = alias_item->parent()->text() + " " +
+                   alias_item->parent()->child(alias_item->row(), SettingsObj::AliasId)->text();
+        alias_name = alias_item->parent()->child(alias_item->row(), SettingsObj::AliasName)->text();
+
+        if(model->objectName() == "monitor_model")
+        {
+            qDebug() << "Dev_monitor_model";
+
+            id_attr = Monitor::DevNumAttr;
+            name_attr = Monitor::DevNameAttr;
+        }
+        else // event_model
+        {
+            id_attr = SettingsObj::EvIdDev;
+            name_attr = SettingsObj::EvNameDev;
+        }
+    } else
+    {
+        utils.showMessage(QMessageBox::Warning, "", "Смена псевдонимов не возможна");
+        return;
+    }
+
+    QList<QStandardItem *> item_list =  model->findItems(alias_id, Qt::MatchExactly, id_attr);
+
+    QProgressDialog progress("Применение синонимов в зависимых таблицах", "&Cancel", 0, item_list.size()-1);
+    progress.setWindowTitle("Пожалуйста подождите...");
+    progress.setMinimumDuration(10);
+    progress.setAutoClose(true);
+    progress.setModal(true);
+
+    QList<QStandardItem *>::iterator i = item_list.begin();
+    int item_num = 0;
+    for(; i != item_list.end(); i++, item_num++)
+    {
+        progress.setValue(item_num);
+        qApp->processEvents();
+        model->item((*i)->row(), name_attr)->setText(alias_name);
+    }
+
+    qDebug() << "Alias changed";
 }
 
 /**
@@ -299,8 +370,10 @@ void SettingsWindow::slotAliasChanged(QStandardItem *item)
                 tag_list[item->row()] = item->text();
             }
         }
-        utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
-        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
+
+        changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), false);
+        changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
+        emit monitor_obj->sendResizeView();
     }
 
     event_view->resizeColumnsToContents();
@@ -652,9 +725,10 @@ void SettingsWindow::slotDelete()
             tag_list.removeAt(item->row());
         }
 
-        utils.changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
-        utils.changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
+        changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
+        changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
 
+        emit monitor_obj->sendResizeView();
         set_obj->getModel(type_model)->removeRow(row);
     }
 }

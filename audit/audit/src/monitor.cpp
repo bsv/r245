@@ -4,7 +4,7 @@
 Monitor::Monitor()
 {
 
-    monitor_model = new MonitorModel();
+    monitor_model = new QStandardItemModel();
     monitor_model->setObjectName("monitor_model");
 
     initHeader();
@@ -12,6 +12,11 @@ Monitor::Monitor()
     monitor_model_proxy = new MonitorFilter();
     monitor_model_proxy->setSourceModel(monitor_model);
     initMas();
+}
+
+void Monitor::sendResizeView()
+{
+    emit signalResizeMonitorView();
 }
 
 /// Устанавливает горизонтальный заголовок табличной модели monitor_model.

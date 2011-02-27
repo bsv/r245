@@ -20,8 +20,9 @@
 
 class SettingsObj;
 
-class Monitor
+class Monitor : public QObject
 {
+    Q_OBJECT
 public:
     /**
       * Данный тип перечисления задает символьные идентификаторы номерам колонок
@@ -64,6 +65,7 @@ public:
     void setFilter(QString channel, QString device, QString tag, QString event, QDate daten, QDate datem, QTime timen, QTime timem);
     void onlyTagInf(bool only = true);
     QAbstractItemModel * getModel(bool proxy);
+    void sendResizeView();
     void clear();
     void update();
     void updateAlias(SettingsObj * set_obj);
@@ -88,7 +90,7 @@ private:
       * Ссылка на объект модели монитора. Монитор
       * хранит данные о регистрируемых событиях.
       */
-    MonitorModel * monitor_model;
+    QStandardItemModel * monitor_model;
 
     /**
       * Ссылка на объект вспомогательной модели монитора, которая содержит
@@ -96,6 +98,9 @@ private:
       * Содержимое данной модели отображается в окне монитора MonitorWindow.
       */
     MonitorFilter * monitor_model_proxy;
+
+signals:
+    void signalResizeMonitorView();
 
 };
 
