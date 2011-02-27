@@ -96,7 +96,6 @@ bool Utils::unloadLibrary()
 void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, bool clear)
 {
     QStandardItemModel * alias_model = alias_item->model();
-    QStandardItem * item_model;
     QString alias_id = "";
     QString alias_name = "";
 
@@ -144,34 +143,24 @@ void Utils::changeAlias(QStandardItem * alias_item, QStandardItemModel * model, 
         return;
     }
 
+    QList<QStandardItem *> item_list =  model->findItems(alias_id, Qt::MatchExactly, id_attr);
 
-    QProgressDialog progress("ѕрименение синонимов в зависимых таблицах", "&Cancel", 0, row_count-1);
+    QProgressDialog progress("ѕрименение синонимов в зависимых таблицах", "&Cancel", 0, item_list.size()-1);
     progress.setWindowTitle("ѕожалуйста подождите...");
-    progress.setMinimumDuration(0);
+    progress.setMinimumDuration(10);
     progress.setAutoClose(true);
     progress.setModal(true);
 
-    for(int row = 0; row < row_count; row++)
+
+    QList<QStandardItem *>::iterator i = item_list.begin();
+    int item_num = 0;
+    for(; i != item_list.end(); i++, item_num++)
     {
-        progress.setValue(row);
+        progress.setValue(item_num);
         qApp->processEvents();
-
-        item_model = model->item(row, id_attr);
-
-        if(item_model->text() == alias_id)
-        {
-            if(clear)
-            {
-                model->blockSignals(true); // чтобы не работали сигналы на изменение моделей (актуально дл€ event_model)
-                model->item(row, name_attr)->setText(alias_id);
-                model->blockSignals(false);
-            } else
-            {
-                // ќчень много времени отнимает, если не активно окно монитора !!!
-                model->item(row, name_attr)->setText(alias_name);
-            }
-        }
+        model->item((*i)->row(), name_attr)->setText(alias_name);
     }
+
     qDebug() << "Alias changed";
 }
 

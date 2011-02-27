@@ -4,7 +4,7 @@
 Monitor::Monitor()
 {
 
-    monitor_model = new QStandardItemModel();
+    monitor_model = new MonitorModel();
     monitor_model->setObjectName("monitor_model");
 
     initHeader();
@@ -91,6 +91,7 @@ void Monitor::addTransToModel(QString dev_num, R245_TRANSACT * trans, const QStr
         int row = 0/*monitor_model->rowCount()*/;
 
         monitor_model->insertRow(row);
+
         monitor_model->setItem(row, TypeEventAttr, new QStandardItem(QString("%1").arg(state[trans->code])));
         monitor_model->setItem(row, TransCodeAttr, new QStandardItem(QString().setNum(trans->code)));
         monitor_model->setItem(row, ChAttr, new QStandardItem(QString("%1").arg(trans->channel)));

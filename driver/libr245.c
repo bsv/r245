@@ -116,7 +116,7 @@ R245_API FT_STATUS R245_InitDev(unsigned char num_dev)
     FT_STATUS ft_status;
     FT_HANDLE ft_handle;
 
-    if (ft_status = FT_Open(num_dev, &ft_handle) != FT_OK) {
+    if ((ft_status = FT_Open(num_dev, &ft_handle)) != FT_OK) {
         return ft_status;
     }
 
@@ -154,7 +154,6 @@ short int R245_PacketForm(unsigned char dev_addr, unsigned char cmd,
     unsigned char packet[MAX_PACKET_LEN];
     unsigned char packet_len = 0;
     unsigned short int crc = 0;
-    short int i = 0;
 
     packet[0] = 0xFB; //start
     packet[1] = packet_ctr; // number of packet
@@ -334,9 +333,7 @@ short int R245_PacketRecieve(FT_HANDLE ft_handle, unsigned char * rx_buffer,
         printf("FAILED\n");
     }*/
 
-    while(recieve
-            /*rx_packet_len <= PACKET_HEAD_LEN ||*/ /*rx_packet_len !=
-                        rx_buffer[N_DATA_LEN]+PACKET_HEAD_LEN + PACKET_END_LEN*/)
+    while(recieve)
     {
         if(WaitForSingleObject(h_event, 0xFF/*INFINITE*/))
         {
@@ -441,8 +438,6 @@ R245_API FT_STATUS R245_GetVersion(unsigned char num_dev,
 {
     unsigned char rx_data_len = 0;
     R245_DEV_INFO info;
-
-    unsigned char ver[100];
 
     R245_GetDevInfo(num_dev, &info);
 

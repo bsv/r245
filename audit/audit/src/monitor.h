@@ -16,6 +16,7 @@
 #include "global.h"
 #include <QDateTime>
 #include "monitor_filter.h"
+#include "monitor_model.h"
 
 class SettingsObj;
 
@@ -87,7 +88,7 @@ private:
       * Ссылка на объект модели монитора. Монитор
       * хранит данные о регистрируемых событиях.
       */
-    QStandardItemModel * monitor_model;
+    MonitorModel * monitor_model;
 
     /**
       * Ссылка на объект вспомогательной модели монитора, которая содержит
