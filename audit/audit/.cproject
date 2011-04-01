@@ -105,7 +105,6 @@
 				<buildTargets>
 					<target name="Qt Release Build" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 						<buildCommand>mingw32-make</buildCommand>
-						<buildArguments/>
 						<buildTarget>release</buildTarget>
 						<stopOnError>false</stopOnError>
 						<useDefaultCommand>false</useDefaultCommand>
@@ -113,7 +112,6 @@
 					</target>
 					<target name="Qt Debug Build" path="" targetID="org.eclipse.cdt.make.MakeTargetBuilder">
 						<buildCommand>mingw32-make</buildCommand>
-						<buildArguments/>
 						<buildTarget>debug</buildTarget>
 						<stopOnError>false</stopOnError>
 						<useDefaultCommand>false</useDefaultCommand>
@@ -122,8 +120,6 @@
 				</buildTargets>
 			</storageModule>
 			<storageModule moduleId="org.eclipse.cdt.core.pathentry">
-				<pathentry kind="src" path=""/>
-				<pathentry kind="out" path=""/>
 				<pathentry base-path="C:/Qt/4.7.1/include" include="" kind="inc" path="" system="true"/>
 				<pathentry base-path="C:/Qt/4.7.1/include" include="ActiveQt" kind="inc" path="" system="true"/>
 				<pathentry base-path="C:/Qt/4.7.1/include" include="phonon" kind="inc" path="" system="true"/>
@@ -150,6 +146,8 @@
 				<pathentry base-path="C:/Qt/4.7.1/include" include="QtWebKit" kind="inc" path="" system="true"/>
 				<pathentry base-path="C:/Qt/4.7.1/include" include="QtXml" kind="inc" path="" system="true"/>
 				<pathentry base-path="C:/Qt/4.7.1/include" include="QtXmlPatterns" kind="inc" path="" system="true"/>
+				<pathentry kind="src" path=""/>
+				<pathentry kind="out" path=""/>
 			</storageModule>
 		</cconfiguration>
 	</storageModule>

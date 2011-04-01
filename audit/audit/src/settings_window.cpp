@@ -134,10 +134,7 @@ void SettingsWindow::slotGetDevSettings()
         unsigned char addr = index.parent().child(index.row(), 0).data().toInt();
         ulong id = index.parent().data().toULongLong();
 
-
         DEV_INFO * dev = set_obj->getDevSettings(id, addr);
-
-        qDebug() << "BEFORE = " << dev->channel;
 
         if(dev != NULL)
         {

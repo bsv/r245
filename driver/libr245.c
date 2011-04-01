@@ -276,7 +276,7 @@ short int R245_PacketSend(FT_HANDLE ft_handle, unsigned char dev_addr,
     R245_PacketForm(dev_addr, cmd, data, data_len, tx_buffer, &tx_packet_len);
     
     printf("PACKET\n");
-            for(i = 0; i < tx_packet_len; i ++)
+            for(i = 0; i < tx_packet_len; i++)
                 printf("0x%x ", tx_buffer[i]);
 
             printf("\n");
@@ -285,7 +285,7 @@ short int R245_PacketSend(FT_HANDLE ft_handle, unsigned char dev_addr,
     ft_status = FT_Write(ft_handle, tx_buffer, tx_packet_len, &bytes_written);
     if (ft_status == FT_OK)
     {
-        printf("bytes = %d\n", bytes_written);
+        printf("write bytes = %d\n", bytes_written);
     }
     else
     {
@@ -391,8 +391,6 @@ short int R245_PacketRecieve(FT_HANDLE ft_handle, unsigned char * rx_buffer,
             rx_buffer[N_PACKET_NUMBER] == packet_ctr)
     {
        //packet_ctr++;
-
-
 
        if(rx_data != NULL)
             memcpy(rx_data, &rx_buffer[PACKET_HEAD_LEN], rx_buffer[N_DATA_LEN]);
