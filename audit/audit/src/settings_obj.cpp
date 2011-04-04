@@ -276,6 +276,7 @@ void SettingsObj::readDevInfo()
     R245_DEV_INFO info;
     short int dev_ctr = 0;
     short int dev_count = utils.getDevCount();
+    unsigned char ver[50];
 
     dev_model->clear();
     utils.R245_CloseAllDev();
@@ -298,6 +299,13 @@ void SettingsObj::readDevInfo()
     while(!utils.R245_GetDevInfo(dev_ctr, &info))
     {
         addDevInfoToModel(&info);
+
+        //
+        if(!utils.R245_GetVersion(dev_ctr, 1, ver))
+            qDebug("VERSION: %s\n", ver);
+        else
+            qDebug("Read version error\n");
+        //
 
         if(dev_ctr++ == dev_count)
             break;
