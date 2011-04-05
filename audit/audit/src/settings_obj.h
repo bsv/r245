@@ -112,7 +112,7 @@ public:
     short int setChannelDev(int row, unsigned char addr, short int channel);
     short int setTimeDev(int row, unsigned char addr, short int time, bool time1);
     short int setDistDev(int row, unsigned char addr, unsigned char dist, bool dist1);
-    DEV_INFO * getDevSettings(ulong id, unsigned char addr);
+    DEV_INFO * getDevSettings(ulong id, unsigned char id_reader, bool addr);
     void readDevInfo();
     void saveSetings();
     void addLogNode(QString dev_num, R245_TRANSACT * trans);

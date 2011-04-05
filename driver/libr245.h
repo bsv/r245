@@ -175,7 +175,8 @@ R245_API FT_STATUS R245_GetChan(
 R245_API FT_STATUS R245_SetTimeRTC(unsigned char num_dev, unsigned char addr_dev, R245_RTC * rtc_data);
 R245_API FT_STATUS R245_SetDateRTC(unsigned char num_dev, unsigned char addr_dev, R245_RTC * rtc_data);
 R245_API FT_STATUS R245_ClearTrans(unsigned char num_dev, unsigned char addr_dev);
-R245_API FT_STATUS R245_SetAddr(unsigned char num_dev, unsigned char addr_dev);
+R245_API FT_STATUS R245_SetAddr(unsigned char num_dev, unsigned char addr_dev_old,
+        unsigned char addr_dev);
 //=================================
 
 short int R245_PacketForm(

@@ -275,11 +275,23 @@ short int R245_PacketSend(FT_HANDLE ft_handle, unsigned char dev_addr,
     tx_packet_len = data_len + PACKET_HEAD_LEN + PACKET_END_LEN;
     R245_PacketForm(dev_addr, cmd, data, data_len, tx_buffer, &tx_packet_len);
     
-    printf("PACKET\n");
-            for(i = 0; i < tx_packet_len; i++)
-                printf("0x%x ", tx_buffer[i]);
+    // ќшибка прошивки контролера
+    // ƒл€ команды смены адреса CRC считаетс€ по сообщению
+    // с замененными байтами, которые > 0xFA
+    if(cmd == SET_ADDRESS)
+    {
+        short int crc;
 
-            printf("\n");
+        crc = R245_CRCCount(INITIAL_CRC, &tx_buffer[1], tx_packet_len-4);
+        tx_buffer[tx_packet_len-3] = crc;
+        tx_buffer[tx_packet_len-2] = crc >> 8;
+    }
+
+    printf("PACKET\n");
+    for(i = 0; i < tx_packet_len; i++)
+        printf("0x%x ", tx_buffer[i]);
+
+    printf("\n");
 
 
     ft_status = FT_Write(ft_handle, tx_buffer, tx_packet_len, &bytes_written);
@@ -734,7 +746,8 @@ R245_API FT_STATUS R245_SetTimeRTC(unsigned char num_dev, unsigned char addr_dev
 
 // ѕри смене адреса на линии должен быть только один считыватель
 // јдрес в диапазоне от 1 до 254
-R245_API FT_STATUS R245_SetAddr(unsigned char num_dev, unsigned char addr_dev)
+R245_API FT_STATUS R245_SetAddr(unsigned char num_dev,
+        unsigned char addr_dev_old, unsigned char addr_dev)
 {
     FT_STATUS ft_status;
     R245_DEV_INFO info;
@@ -753,7 +766,7 @@ R245_API FT_STATUS R245_SetAddr(unsigned char num_dev, unsigned char addr_dev)
 
     printf("Direct = %d, inv = %d\n", data[0], data[1]);
 
-    ft_status = R245_PacketSend(info.ft_handle, 0xFF, SET_ADDRESS, data,
+    ft_status = R245_PacketSend(info.ft_handle, addr_dev_old, SET_ADDRESS, data,
            2, NULL, &rx_data_len);
 
     if(!ft_status)

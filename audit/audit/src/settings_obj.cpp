@@ -300,12 +300,10 @@ void SettingsObj::readDevInfo()
     {
         addDevInfoToModel(&info);
 
-        //
-        if(!utils.R245_GetVersion(dev_ctr, 1, ver))
+        /*if(!utils.R245_GetVersion(dev_ctr, 1, ver))
             qDebug("VERSION: %s\n", ver);
         else
-            qDebug("Read version error\n");
-        //
+            qDebug("Read version error\n");*/
 
         if(dev_ctr++ == dev_count)
             break;
@@ -583,7 +581,7 @@ short int SettingsObj::setAuditEn(int row, unsigned char addr, bool active)
 {
 
     qint8 ft_status = 0;
-    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
+    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr, true);
 
     if(dev != NULL)
     {
@@ -602,7 +600,7 @@ short int SettingsObj::setAuditEn(int row, unsigned char addr, bool active)
 short int SettingsObj::setChannelDev(int row, unsigned char addr, short int channel)
 {
     qint8 ft_status = 0;
-    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
+    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr, true);
 
     if(dev != NULL)
     {
@@ -639,7 +637,7 @@ short int SettingsObj::setChannelDev(int row, unsigned char addr, short int chan
 short int SettingsObj::setDistDev(int row, unsigned char addr, unsigned char dist, bool dist1)
 {
     qint8 ft_status = 0;
-    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
+    DEV_INFO * dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr, true);
     unsigned char channel = (dist1)? 1: 2;
 
     if(dev != NULL)
@@ -665,7 +663,7 @@ short int SettingsObj::setTimeDev(int row, unsigned char addr, short int time, b
 {
     qint8 ft_status = 0;
     DEV_INFO * dev = NULL;
-    dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr);
+    dev = getDevSettings(dev_model->data(dev_model->index(row, Id)).toInt(), addr, true);
     unsigned char channel = (time1)? 1: 2;
 
     qDebug() << "Set time: " << time;
@@ -818,20 +816,28 @@ void SettingsObj::addEventToModel(QString id_dev, QString name,
     }
 }
 
-DEV_INFO * SettingsObj::getDevSettings(ulong id, unsigned char addr)
+// addr = true => id_reader = addr, else id_reader = row
+DEV_INFO * SettingsObj::getDevSettings(ulong id, unsigned char id_reader, bool addr)
 {
 
     if(dev_settings.find(id) != dev_settings.end())
     {
         QList<DEV_INFO> * dev_root = dev_settings[id];
-        QList<DEV_INFO>::iterator it = dev_root->begin();
 
-        for(; it != dev_root->end(); ++it)
+        if(addr)
         {
-            if(it->addr == addr)
+            QList<DEV_INFO>::iterator it = dev_root->begin();
+
+            for(; it != dev_root->end(); ++it)
             {
-                return &(*it);
+                if(it->addr == id_reader)
+                {
+                    return &(*it);
+                }
             }
+        } else
+        {
+            return &((*dev_root)[id_reader]);
         }
     }
 
@@ -885,7 +891,7 @@ void SettingsObj::addReaderToModel(unsigned char dev_num, unsigned char addr, QS
         }
     }
 
-    DEV_INFO * dev = getDevSettings(id, addr);
+    DEV_INFO * dev = getDevSettings(id, addr, true);
 
     if(dev == NULL)
     {
@@ -918,53 +924,6 @@ void SettingsObj::addReaderToModel(unsigned char dev_num, unsigned char addr, QS
 
     int row = dev_model->item(dev_num)->rowCount() - 1;
     emit sigAddReader(dev_model->item(dev_num)->child(row));
-
-    /*if(dev == NULL)
-    {
-        DEV_INFO dev_new;
-        dev_new.name = name;
-        dev_new.addr = addr;
-
-        if(utils.R245_GetChan(row, addr, &dev_new.channel) == R245_OK)
-        {
-            utils.R245_GetDamp(row, addr, 1, &dev_new.dist1);
-            utils.R245_GetDamp(row, addr, 2, &dev_new.dist2);
-            utils.R245_GetTime(row, addr, 1, &dev_new.time1);
-            utils.R245_GetTime(row, addr, 2, &dev_new.time2);
-
-            items.append(new QStandardItem(QString().setNum(addr)));
-            items.append(new QStandardItem(name));
-            item->appendRow(items);
-
-            dev_settings[id].append(dev_new);
-        } else
-        {
-            utils.showMessage(QMessageBox::Warning,
-                              "Обнаружение устройств",
-                              "Невозможно инициалицировать устройство " + QString().setNum(row)
-                              );
-        }
-
-    } else
-    {
-        if(setChannelDev(row, dev->channel) == R245_OK)
-        {
-            setTimeDev(row, dev->time1, true);
-            setTimeDev(row, dev->time2, false);
-            setDistDev(row, dev->dist1, true);
-            setDistDev(row, dev->dist2, false);
-
-            items.append(new QStandardItem(QString().setNum(dev->addr)));
-            items.append(new QStandardItem(dev->name));
-            item->appendRow(items);
-        } else
-        {
-            utils.showMessage(QMessageBox::Warning,
-                              "Обнаружение устройств",
-                              "Невозможно настроить подключенное устройство " + QString().setNum(row)
-                              );
-        }
-    }*/
 }
 
 bool SettingsObj::getReaderSettings(unsigned char dev_num, DEV_INFO * dev)
@@ -1005,14 +964,6 @@ void SettingsObj::addDevInfoToModel(R245_DEV_INFO * info)
 
     if(!setActiveDev(row, true))
     {
-        /*uchar ver[55];
-
-        qDebug() << "Get ver";
-        utils.R245_GetVersion(0, 1, ver);
-
-        qDebug("VER = %s\n", ver);
-        qDebug() << "End Get ver";*/
-
         QStandardItem * id_item = new QStandardItem(QString().setNum(info->id));
         QStandardItem * desc_item = new QStandardItem(info->desc);
 
@@ -1040,60 +991,6 @@ void SettingsObj::addDevInfoToModel(R245_DEV_INFO * info)
             }
         }
     }
-
-    /*DEV_INFO * dev = getDevSettings(id.toInt());
-
-    if(dev == NULL)
-    {
-        DEV_INFO dev_new;
-
-        dev_new.active  = 0;
-        dev_new.id      = id.toInt();
-
-        utils.R245_InitDev(row);
-
-        if(utils.R245_GetChan(row, 1, &dev_new.channel) == R245_OK)
-        {*/
-            /* Если команда отправляется без ошибок, то
-             * инициализация прошла успешно
-             */
-
-       /*     utils.R245_GetChan(row, 1, &dev_new.channel);
-            utils.R245_GetDamp(row, 1, 1, &dev_new.dist1);
-            utils.R245_GetDamp(row, 1, 2, &dev_new.dist2);
-            utils.R245_GetTime(row, 1, 1, &dev_new.time1);
-            utils.R245_GetTime(row, 1, 2, &dev_new.time2);
-
-            utils.R245_CloseDev(row);
-            dev_settings.append(dev_new);
-        } else
-        {
-            qDebug() << "INIT ERROR";
-            utils.showMessage(QMessageBox::Warning,
-                              "Обнаружение устройств",
-                              "Невозможно инициалицировать устройство " + QString().setNum(row)
-                              );
-        }
-
-
-    } else
-    {*/
-        // Запрещаем автоматическую настройку устройств
-        /*if(setActiveDev(row, dev->active) == R245_OK)
-        {
-            setChannelDev(row, dev->channel);
-            setTimeDev(row, dev->time1, true);
-            setTimeDev(row, dev->time2, false);
-            setDistDev(row, dev->dist1, true);
-            setDistDev(row, dev->dist2, false);
-        } else
-        {
-            utils.showMessage(QMessageBox::Warning,
-                              "Обнаружение устройств",
-                              "Невозможно настроить подключенное устройство " + QString().setNum(row)
-                              );
-        }*/
-  //  }
 }
 
 SettingsObj::~SettingsObj()

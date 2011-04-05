@@ -101,7 +101,7 @@ typedef short int (*SetChan) (unsigned char, unsigned char, unsigned char, unsig
 typedef short int (*GetChan) (unsigned char, unsigned char, unsigned char *);
 typedef short int (*SetTimeRTC) (unsigned char, unsigned char, R245_RTC *);
 typedef short int (*SetDateRTC) (unsigned char, unsigned char, R245_RTC *);
-typedef short int (*SetAddr) (unsigned char, unsigned char);
+typedef short int (*SetAddr) (unsigned char, unsigned char, unsigned char);
 typedef short int (*ClearTrans) (unsigned char, unsigned char);
 /** @} */
 

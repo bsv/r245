@@ -111,15 +111,22 @@ void SettingsWindow::slotUpdAddr()
     if(index.isValid() && isReaderDev(index))
     {
 
-        utils.showMessage(QMessageBox::Warning, "Внимание",
-                          "При смене адреса на линии должен быть подключен только один считыватель");
-
         unsigned char dev_num = index.parent().row();
         unsigned char addr = index.parent().child(index.row(), 0).data().toInt();
+        ulong id = index.parent().data().toULongLong();
 
-        if(utils.R245_SetAddr(dev_num, addr))
+        DEV_INFO * dev = set_obj->getDevSettings(id, index.row(), false);
+
+        if(dev != NULL)
         {
-            utils.showMessage(QMessageBox::Warning, "Смена адреса", "Ошибка смены адреса");
+            utils.showMessage(QMessageBox::Warning, "Внимание",
+                              "При смене адреса на линии должен быть подключен только один считыватель");
+
+            if(utils.R245_SetAddr(dev_num, dev->addr, addr))
+            {
+                utils.showMessage(QMessageBox::Warning, "Смена адреса", "Ошибка смены адреса");
+            }
+            dev->addr = addr;
         }
     }
 }
@@ -134,7 +141,7 @@ void SettingsWindow::slotGetDevSettings()
         unsigned char addr = index.parent().child(index.row(), 0).data().toInt();
         ulong id = index.parent().data().toULongLong();
 
-        DEV_INFO * dev = set_obj->getDevSettings(id, addr);
+        DEV_INFO * dev = set_obj->getDevSettings(id, addr, true);
 
         if(dev != NULL)
         {
@@ -163,6 +170,7 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
         } else
         {
             qDebug() << "ADDR" << addr;
+
             // Сделать проверку адреса по нормальному
             /*if(!set_obj->isFreeAddress(item->parent()->row(), addr))
             {
@@ -177,14 +185,14 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
         ulong id = item->parent()->data(Qt::DisplayRole).toULongLong();
         int addr = item->parent()->child(item->row())->data(Qt::DisplayRole).toUInt();
 
-        DEV_INFO * dev = set_obj->getDevSettings(id, addr);
+        DEV_INFO * dev = set_obj->getDevSettings(id, addr, true);
         if(dev != NULL)
         {
             dev->name = item->text();
             ((DevModel *)item->model())->changeReader(item->parent()->row(), item->row());
             slotAliasChanged(item);
 
-            changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
+            //changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
         } else
         {
             item->setText("");
@@ -359,7 +367,6 @@ void SettingsWindow::slotAliasChanged(QStandardItem *item)
 
     if(!block_alias_change)
     {
-
         if(item->model()->objectName() == "tag_model")
         {
             if(item->column() == SettingsObj::AliasName)
@@ -480,7 +487,7 @@ void SettingsWindow::slotSaveSetings()
             QStandardItemModel * model = (QStandardItemModel *)set_obj->getModel(SettingsObj::DevTypeModel);
             ulong id = model->item(row)->data(Qt::DisplayRole).toULongLong();
 
-            DEV_INFO * dev = set_obj->getDevSettings(id, addr);
+            DEV_INFO * dev = set_obj->getDevSettings(id, addr, true);
 
             if(dev == NULL)
             {
@@ -661,7 +668,7 @@ void SettingsWindow::slotDevClick(QModelIndex qmi)
 
         uint addr = model->item(row)->child(dev_row)->data(Qt::DisplayRole).toUInt();
 
-        DEV_INFO * dev = set_obj->getDevSettings(model->index(row, 0).data().toULongLong(), addr);
+        DEV_INFO * dev = set_obj->getDevSettings(model->index(row, 0).data().toULongLong(), addr, true);
 
         if(dev != NULL)
         {
