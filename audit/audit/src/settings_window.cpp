@@ -110,7 +110,6 @@ void SettingsWindow::slotUpdAddr()
 
     if(index.isValid() && isReaderDev(index))
     {
-
         unsigned char dev_num = index.parent().row();
         unsigned char addr = index.parent().child(index.row(), 0).data().toInt();
         ulong id = index.parent().data().toULongLong();
@@ -170,7 +169,8 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
         } else
         {
             qDebug() << "ADDR" << addr;
-
+            changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
+            changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
             // Сделать проверку адреса по нормальному
             /*if(!set_obj->isFreeAddress(item->parent()->row(), addr))
             {
@@ -191,8 +191,6 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
             dev->name = item->text();
             ((DevModel *)item->model())->changeReader(item->parent()->row(), item->row());
             slotAliasChanged(item);
-
-            //changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
         } else
         {
             item->setText("");
@@ -252,7 +250,12 @@ void SettingsWindow::changeAlias(QStandardItem * alias_item, QStandardItemModel 
         return;
     }
 
-    QList<QStandardItem *> item_list =  model->findItems(alias_id, Qt::MatchExactly, id_attr);
+    QList<QStandardItem *> item_list;
+
+    if(clear)
+        item_list =  model->findItems(alias_name, Qt::MatchExactly, name_attr);
+    else
+        item_list =  model->findItems(alias_id, Qt::MatchExactly, id_attr);
 
     QProgressDialog progress("Применение синонимов в зависимых таблицах", "&Cancel", 0, item_list.size()-1);
     progress.setWindowTitle("Пожалуйста подождите...");
@@ -266,7 +269,18 @@ void SettingsWindow::changeAlias(QStandardItem * alias_item, QStandardItemModel 
     {
         progress.setValue(item_num);
         qApp->processEvents();
-        model->item((*i)->row(), name_attr)->setText(alias_name);
+
+        model->blockSignals(true);
+        if(clear)
+        {
+            QString id_old = model->item((*i)->row(), id_attr)->text();
+            (*i)->setText(id_old);
+        }
+        else
+        {
+            model->item((*i)->row(), name_attr)->setText(alias_name);
+        }
+        model->blockSignals(false);
     }
 
     qDebug() << "Alias changed";
@@ -372,6 +386,10 @@ void SettingsWindow::slotAliasChanged(QStandardItem *item)
             if(item->column() == SettingsObj::AliasName)
             {
                 tag_list[item->row()] = item->text();
+            } else
+            {
+                changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
+                changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
             }
         }
 
@@ -405,8 +423,6 @@ void SettingsWindow::slotEventDataChanged(QStandardItem *item)
         item->model()->blockSignals(true);
         item->model()->item(item->row(), id_attr)->setText(id);
         item->model()->blockSignals(false);
-
-
     }
 
     event_view->resizeColumnsToContents();

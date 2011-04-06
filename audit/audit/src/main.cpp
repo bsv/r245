@@ -70,16 +70,28 @@ int main(int argc, char ** argv)
         } else {
 
             QFile key_file("key.txt");
+            unsigned char dev_count = 0;
+            unsigned short crc = 0;
+
+            utils.setDevCount(0);
 
             utils.openFile(&key_file, QIODevice::ReadOnly);
 
             QTextStream kstr(&key_file);
             QString key = kstr.readAll();
 
-            qDebug() << "KEY" << key;
+            for(; dev_count < 255 /*MAX DEV COUNT*/; dev_count++)
+            {
+                crc = utils.crc16(&dev_count, 1, POLYNOM, 0xFFFF);
+                if(QString().setNum(crc, 16) == key)
+                {
+                    utils.setDevCount(dev_count); // установка ограничения на работу с dev_count устройствами
+                    break;
+                }
+                qDebug() << dev_count << " " << QString().setNum(crc, 16);
+            }
 
-            utils.setDevCount(255); // ограничение на работу с 255 устройствами
-
+            qDebug() << "KEY = " << key << "DEV_COUNT = " << dev_count << key;
             utils.closeFile(&key_file);
         }
         //====================================================================

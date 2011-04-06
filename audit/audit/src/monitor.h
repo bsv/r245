@@ -16,7 +16,6 @@
 #include "global.h"
 #include <QDateTime>
 #include "monitor_filter.h"
-#include "monitor_model.h"
 
 class SettingsObj;
 

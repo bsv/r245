@@ -18,6 +18,32 @@ short int Utils::getDevCount()
     return dev_count;
 }
 
+unsigned short int Utils::crc16(unsigned char *mes, int size, unsigned short int polinom, unsigned short int start_crc)
+{
+    unsigned short int crc = start_crc, i = 0;
+
+    for(i = 0; i < size; i++){
+        crc = calcTab(((crc >> 8) ^ mes[i]) & 0xFF, polinom) ^ (crc << 8);
+    }
+    return crc;
+}
+
+
+unsigned short int Utils::calcTab(int i, unsigned short polinom)
+{
+    unsigned short int r = i << 8;
+    int bit = 0;
+
+    for(bit = 0; bit < 8; bit++)
+    {
+        if(r & 0x8000)
+            r = (r << 1) ^ polinom;
+        else
+            r <<= 1;
+    }
+    return r;
+}
+
 bool Utils::loadLibrary(QString file_name)
 {
     

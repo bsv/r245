@@ -20,11 +20,15 @@
 #include <QStandardItem>
 #include "r245_types.h"
 
+#define POLYNOM 0x1021
+
 class Utils
 {
 private:
     QLibrary *lib;
     short int dev_count; // ограничение на количество устройств
+
+    unsigned short calcTab(int i, unsigned short polinom);
 
 public:
     Utils();
@@ -39,6 +43,8 @@ public:
     bool closeFile(QFile *file);
     void setDevCount(short int count);
     short int getDevCount();
+    unsigned short crc16(unsigned char *mes, int size,
+                    unsigned short int polinom, unsigned short int start_crc);
 
     // Import functions from libr245dll.dll
     /** @name Определение имен функций, импортируемых из библиотеки libr245dll.dll
