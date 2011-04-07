@@ -743,13 +743,14 @@ void SettingsWindow::slotDelete()
         if(type_model == SettingsObj::TagTypeModel)
         {
             tag_list.removeAt(item->row());
+            changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
+            changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
+            set_obj->getModel(type_model)->removeRow(row);
+        } else
+        {
+            set_obj->getModel(type_model)->removeRow(row);
         }
-
-        changeAlias(item, (QStandardItemModel *) monitor_obj->getModel(false), true);
-        changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
-
         emit monitor_obj->sendResizeView();
-        set_obj->getModel(type_model)->removeRow(row);
     }
 }
 
