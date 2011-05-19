@@ -920,7 +920,14 @@ void SettingsObj::addReaderToModel(unsigned char dev_num, unsigned char addr, QS
     }
 
     dev_model->addReader(dev_num, items);
-    setAuditEn(dev_num, items[0]->text().toInt(), true);
+    if(setAuditEn(dev_num, items[0]->text().toInt(), true))
+    {
+        qDebug() << "Error acivate, dev_num = " << dev_num << " addr = " << addr;
+    }
+    else
+    {
+        qDebug() << "Reader is activated, dev_num = " << dev_num << " addr = " << addr;
+    }
 
     int row = dev_model->item(dev_num)->rowCount() - 1;
     emit sigAddReader(dev_model->item(dev_num)->child(row));

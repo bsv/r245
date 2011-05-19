@@ -179,7 +179,6 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
                 item->setText(QString().setNum(addr));
             }*/
         }
-
     } else if(item->column() == SettingsObj::Name)
     {
         ulong id = item->parent()->data(Qt::DisplayRole).toULongLong();
