@@ -18,6 +18,7 @@
 #include <QMessageBox>
 #include <QStandardItemModel>
 #include <QStandardItem>
+#include <QStringList>
 #include "r245_types.h"
 
 #define POLYNOM 0x1021
@@ -26,7 +27,9 @@ class Utils
 {
 private:
     QLibrary *lib;
-    short int dev_count; // ограничение на количество устройств
+    QStringList * dev_list; // указатель на список устройств, с которыми разрешена работа
+                            // в рамках данной программы. Список получается из key.txt в
+                            // зашифрованном виде
 
     unsigned short calcTab(int i, unsigned short polinom);
 
@@ -41,15 +44,15 @@ public:
     void showMessage(QMessageBox::Icon icon, QString header, QString msg);
     bool openFile(QFile * file, QFlags<QIODevice::OpenModeFlag> mode);
     bool closeFile(QFile *file);
-    void setDevCount(short int count);
-    short int getDevCount();
+    void setDevList(QStringList * str_list);
+    QStringList * getDevList();
     unsigned short crc16(unsigned char *mes, int size,
                     unsigned short int polinom, unsigned short int start_crc);
 
     // Import functions from libr245dll.dll
     /** @name Определение имен функций, импортируемых из библиотеки libr245dll.dll
-      * @{
-      */
+     * @{
+     */
 
     Init R245_Init;
     CloseAllDev R245_CloseAllDev;

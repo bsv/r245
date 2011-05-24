@@ -11,6 +11,7 @@
 #include "main_window.h"
 #include "utils.h"
 #include "global.h"
+#include <QStringList>
 
 /**
   * @mainpage Система мониторинга на базе считывателя PR-G07
@@ -56,42 +57,30 @@ int main(int argc, char ** argv)
 
     /*if(!QFile::exists("libr245.dll"))
     {
-        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека libr245.dll");
-    } else if(!QFile::exists("ftd2xx.dll"))
+        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека libr245.dll");    } else if(!QFile::exists("ftd2xx.dll"))
     {
-        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека ftd2xx.dll");
-    } else*/ if(utils.loadLibrary("libr245.dll"))
+        utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найдена библиотека ftd2xx.dll");    } else*/ if(utils.loadLibrary("libr245.dll"))
     {
-        // Начал реализовывать механизм защиты от незаконного распространения
+        QStringList * str_list = new QStringList();
+        utils.setDevList(str_list);
+
         if(!QFile::exists("key.txt"))
         {
             utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке с программой не найден файл с ключом key.txt");
-            utils.setDevCount(0);
         } else {
 
             QFile key_file("key.txt");
-            unsigned char dev_count = 0;
-            unsigned short crc = 0;
-
-            utils.setDevCount(0);
 
             utils.openFile(&key_file, QIODevice::ReadOnly);
 
             QTextStream kstr(&key_file);
-            QString key = kstr.readAll();
 
-            for(; dev_count < 255 /*MAX DEV COUNT*/; dev_count++)
+            while(!kstr.atEnd())
             {
-                crc = utils.crc16(&dev_count, 1, POLYNOM, 0xFFFF);
-                if(QString().setNum(crc, 16) == key)
-                {
-                    utils.setDevCount(dev_count); // установка ограничения на работу с dev_count устройствами
-                    break;
-                }
-                qDebug() << dev_count << " " << QString().setNum(crc, 16);
+                *str_list << kstr.readLine();
             }
 
-            qDebug() << "KEY = " << key << "DEV_COUNT = " << dev_count << key;
+            qDebug() << "KEY count = " << str_list->size();
             utils.closeFile(&key_file);
         }
         //====================================================================

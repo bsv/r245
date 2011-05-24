@@ -152,8 +152,8 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
         if(!tparser.parseOK())
         {
             utils.showMessage(QMessageBox::Warning,
-                              "Открытие журнала",
-                              "Файл журнала поврежден");
+                                          "Открытие журнала",
+                                          "Файл журнала поврежден");
         }
     }
 
@@ -275,8 +275,10 @@ void SettingsObj::readDevInfo()
 {
     R245_DEV_INFO info;
     short int dev_ctr = 0;
-    short int dev_count = utils.getDevCount();
-    unsigned char ver[50];
+    ulong crc_id = 0;
+    uchar byte_mas[4];
+    QStringList * dev_list = utils.getDevList();
+    //unsigned char ver[50];
 
     dev_model->clear();
     utils.R245_CloseAllDev();
@@ -298,15 +300,24 @@ void SettingsObj::readDevInfo()
 
     while(!utils.R245_GetDevInfo(dev_ctr, &info))
     {
-        addDevInfoToModel(&info);
+        byte_mas[0] = info.id;
+        byte_mas[1] = info.id >> 8;
+        byte_mas[2] = info.id >> 16;
+        byte_mas[3] = info.id >> 24;
 
-        /*if(!utils.R245_GetVersion(dev_ctr, 1, ver))
-            qDebug("VERSION: %s\n", ver);
-        else
-            qDebug("Read version error\n");*/
+        crc_id = utils.crc16(byte_mas, 4, POLYNOM, 0xFFFF);
 
-        if(dev_ctr++ == dev_count)
-            break;
+        if(dev_list->indexOf(QString().setNum(crc_id, 16)) != -1)
+        {
+            qDebug() << "OK CRC";
+            addDevInfoToModel(&info);
+
+            /*if(!utils.R245_GetVersion(dev_ctr, 1, ver))
+                qDebug("VERSION: %s\n", ver);
+            else
+                qDebug("Read version error\n");*/
+        }
+        dev_ctr++;
     }
 }
 
@@ -949,8 +960,8 @@ bool SettingsObj::getReaderSettings(unsigned char dev_num, DEV_INFO * dev)
     }
 
     utils.showMessage(QMessageBox::Warning,
-                      "Получение настроек",
-                      "Невозможно получить настройки устройства");
+                          "Получение настроек",
+                          "Невозможно получить настройки устройства");
 
     qDebug() << ft_status;
 

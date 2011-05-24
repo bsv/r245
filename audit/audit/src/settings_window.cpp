@@ -119,7 +119,7 @@ void SettingsWindow::slotUpdAddr()
         if(dev != NULL)
         {
             utils.showMessage(QMessageBox::Warning, "Внимание",
-                              "При смене адреса на линии должен быть подключен только один считыватель");
+                                          "При смене адреса на линии должен быть подключен только один считыватель");
 
             if(utils.R245_SetAddr(dev_num, dev->addr, addr))
             {
@@ -171,7 +171,7 @@ void SettingsWindow::slotDevDataChanged(QStandardItem * item)
             qDebug() << "ADDR" << addr;
             changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), true);
             changeAlias(item, (QStandardItemModel *) set_obj->getModel(SettingsObj::EventTypeModel), false);
-            // Сделать проверку адреса по нормальному
+            // Сделать проверку адреса по-нормальному
             /*if(!set_obj->isFreeAddress(item->parent()->row(), addr))
             {
                 utils.showMessage(QMessageBox::Warning, "Изменение адреса", "Такой адрес уже имеется.");
@@ -358,9 +358,11 @@ void SettingsWindow::slotNewSettings()
 
         utils.closeFile(&file);
         set_obj->openSettingFile(file_path);
+        set_menu_tab->setTabEnabled(1, true);
     } else
     {
         settings_le->setText("");
+        set_menu_tab->setTabEnabled(1, false);
     }
 }
 
@@ -521,8 +523,8 @@ void SettingsWindow::slotSaveSetings()
                 if(set_obj->setChannelDev(row, dev->addr, channel) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
-                                      "Настройка каналов",
-                                      "Невозможно обновить настройки каналов");
+                                                          "Настройка каналов",
+                                                          "Невозможно обновить настройки каналов");
                 }
                 set_obj->setChannelDev(row, dev->addr, channel); // сменяет настройки каналов, когда два раза
                                                                  // вызывается данная команда
@@ -532,8 +534,8 @@ void SettingsWindow::slotSaveSetings()
                 if(set_obj->setTimeDev(row, dev->addr, time1, true) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
-                                      "Настройка времени реакции",
-                                      "Невозможно обновить настройки времени реакции для первого канала");
+                                                          "Настройка времени реакции",
+                                                          "Невозможно обновить настройки времени реакции для первого канала");
                 }
             }
             if(dev->time2 != time2)
@@ -541,8 +543,8 @@ void SettingsWindow::slotSaveSetings()
                 if(set_obj->setTimeDev(row, dev->addr, time2, false) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
-                                      "Настройка времени реакции",
-                                      "Невозможно обновить настройки времени реакции для второго канала");
+                                                          "Настройка времени реакции",
+                                                          "Невозможно обновить настройки времени реакции для второго канала");
                 }
             }
             if(dev->dist1 != dist1)
@@ -550,8 +552,8 @@ void SettingsWindow::slotSaveSetings()
                 if(set_obj->setDistDev(row, dev->addr, dist1, true) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
-                                      "Настройка дальности считывания",
-                                      "Невозможно обновить настройки дальности считывания для первого канала");
+                                                          "Настройка дальности считывания",
+                                                          "Невозможно обновить настройки дальности считывания для первого канала");
                 }
             }
             if(dev->dist2 != dist2)
@@ -559,8 +561,8 @@ void SettingsWindow::slotSaveSetings()
                 if(set_obj->setDistDev(row, dev->addr, dist2, false) != R245_OK)
                 {
                     utils.showMessage(QMessageBox::Warning,
-                                      "Настройка дальности считывания",
-                                      "Невозможно обновить настройки дальности считывания для второго канала");
+                                                          "Настройка дальности считывания",
+                                                          "Невозможно обновить настройки дальности считывания для второго канала");
                 }
             }
         }
@@ -652,7 +654,6 @@ void SettingsWindow::slotDeleteDev()
 /**
   Обновление настроек считывателя в элементах интерфейса
 */
-
 void SettingsWindow::updateSettings(DEV_INFO * dev)
 {
     time1_edt->setTime(utils.secToTime(dev->time1));

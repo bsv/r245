@@ -6,16 +6,18 @@
 Utils::Utils()
 {
     lib = NULL;
+    dev_list = NULL;
 }
 
-void Utils::setDevCount(short int count)
+void Utils::setDevList(QStringList * str_list)
 {
-    dev_count = count;
+    delete dev_list;
+    dev_list = str_list;
 }
 
-short int Utils::getDevCount()
+QStringList * Utils::getDevList()
 {
-    return dev_count;
+    return dev_list;
 }
 
 unsigned short int Utils::crc16(unsigned char *mes, int size, unsigned short int polinom, unsigned short int start_crc)
