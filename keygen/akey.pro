@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = akey
-QT += core \
-    gui
+QT += core gui
+CONFIG += static release
 HEADERS += R245.h \
     keygen.h \
     r245_types.h

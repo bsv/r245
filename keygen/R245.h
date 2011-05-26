@@ -19,6 +19,7 @@ public:
     bool loadLibrary();
 
     GetDevInfo R245_GetDevInfo;
+    InitDev R245_InitDev;
 
 private:
     QLibrary *lib;

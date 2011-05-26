@@ -16,7 +16,7 @@ R245::~R245() {
 
 bool R245::loadLibrary()
 {
-    lib = new QLibrary("libr245.dll");
+    lib = new QLibrary("lib/libr245.dll");
 
     if(lib->load())
     {
@@ -29,6 +29,7 @@ bool R245::loadLibrary()
     }
 
     R245_GetDevInfo = (GetDevInfo) lib->resolve("R245_GetDevInfo");
+    R245_InitDev = (InitDev) lib->resolve("R245_InitDev");
 
     return true;
 }

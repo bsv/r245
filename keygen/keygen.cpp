@@ -10,12 +10,14 @@ KeygenWindow::KeygenWindow(QWidget *parent)
 	    dev_list->setModel(&model);
 
         code_edit->setText(QString().setNum(POLYNOM));
+        num_edit->setText("0");
         connect(save_button, SIGNAL(clicked()), SLOT(slotSave()));
         connect(get_id_btn, SIGNAL(clicked()), SLOT(slotGetId()));
         connect(add_dev_btn, SIGNAL(clicked()), SLOT(slotAddDev()));
 	} else
 	{
-	    showMessage(QMessageBox::Warning, "Error", "Load library isn't OK!!!");
+	    showMessage(QMessageBox::Warning, "Error", "Load library isn't OK: lib/libr245.dll!!!");
+	    exit(1);
 	}
 }
 
@@ -34,11 +36,25 @@ void KeygenWindow::slotAddDev()
 void KeygenWindow::slotGetId()
 {
     R245_DEV_INFO info;
+    bool ok = false;
 
-    if(!r245.R245_GetDevInfo(0, &info))
+    uchar dev_num = num_edit->text().toInt(&ok);
+
+    if(!ok)
+       dev_num = 0;
+
+
+    if(!r245.R245_GetDevInfo(dev_num, &info))
     {
-        //dev_edit->setText(QString().setNum(info.id));
-        dev_edit->setText(QString().setNum(67363761));
+        QString snumber = "";
+
+        for(int i = 0; i < 16; i++)
+        {
+            snumber += QString().setNum((uchar)info.serial_number[i], 16);
+        }
+
+        r245.R245_InitDev(dev_num);
+        dev_edit->setText(snumber);
     }
 }
 
@@ -48,8 +64,7 @@ void KeygenWindow::slotSave()
     ushort crc = 0;
     bool ok;
     ushort poly = code_edit->text().toInt(&ok);
-    ulong id = 0;
-    uchar byte_mas[4];
+    uchar dig = 0;
 
     if(!ok)
     {
@@ -62,23 +77,17 @@ void KeygenWindow::slotSave()
 
     for(int i = 0; i < str_list.size(); i++)
     {
-        id = str_list[i].toLong(&ok);
+        crc = 0xFFFF;
 
-        if(!ok)
+        for(int j = 0; j < str_list[i].size(); j++)
         {
-            showMessage(QMessageBox::Warning, "Ошибка формата", "Идентификатор должен быть числом!!!");
-            break;
+            dig = (str_list[i])[j].toAscii();
+            crc = crc16(&dig, 1, poly, crc);
         }
-
-        byte_mas[0] = id;
-        byte_mas[1] = id >> 8;
-        byte_mas[2] = id >> 16;
-        byte_mas[3] = id >> 24;
-
-        crc = crc16(byte_mas, 4, poly, 0xFFFF);
 
         kstr << QString().setNum(crc, 16) << endl;
     }
+    showMessage(QMessageBox::Information, "Успех", "Ключ успешно создан!!!");
 
     closeFile(&key_file);
 }
