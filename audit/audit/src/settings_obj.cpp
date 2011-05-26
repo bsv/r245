@@ -276,7 +276,8 @@ void SettingsObj::readDevInfo()
     R245_DEV_INFO info;
     short int dev_ctr = 0;
     ulong crc_id = 0;
-    uchar byte_mas[4];
+    uchar dbyte;
+    QString snumber;
     QStringList * dev_list = utils.getDevList();
     //unsigned char ver[50];
 
@@ -300,16 +301,25 @@ void SettingsObj::readDevInfo()
 
     while(!utils.R245_GetDevInfo(dev_ctr, &info))
     {
-        byte_mas[0] = info.id;
-        byte_mas[1] = info.id >> 8;
-        byte_mas[2] = info.id >> 16;
-        byte_mas[3] = info.id >> 24;
 
-        crc_id = utils.crc16(byte_mas, 4, POLYNOM, 0xFFFF);
+        crc_id = 0xFFFF;
+
+        for(int i = 0; i < 16; i++)
+        {
+            snumber = QString().setNum((uchar)info.serial_number[i], 16);
+
+            for(int j = 0; j < snumber.size(); j++)
+            {
+                dbyte = snumber[j].toAscii();
+                crc_id = utils.crc16(&dbyte, 1, POLYNOM, crc_id);
+            }
+        }
 
         if(dev_list->indexOf(QString().setNum(crc_id, 16)) != -1)
         {
             qDebug() << "OK CRC";
+            info.id = crc_id; // info->id может быть для разный считывателей быть
+                               // одинаковым, поэтому заменяем на crc(info->serial_number)
             addDevInfoToModel(&info);
 
             /*if(!utils.R245_GetVersion(dev_ctr, 1, ver))
