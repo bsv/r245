@@ -55,13 +55,13 @@ int main(int argc, char ** argv)
 
     QApplication app( argc, argv );
 
-    if(!QFile::exists("lib/libr245.dll"))
+    /*if(!QFile::exists("lib/libr245.dll"))
     {
         utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке lib не найдена библиотека libr245.dll");    }
     else if(!QFile::exists("lib/ftd2xx.dll"))
     {
         utils.showMessage(QMessageBox::Warning, "Ошибка", "В папке lib не найдена библиотека ftd2xx.dll");    }
-    else if(utils.loadLibrary("lib/libr245.dll"))
+    else*/ if(utils.loadLibrary("lib/libr245.dll"))
     {
         QStringList * str_list = new QStringList();
         utils.setDevList(str_list);

@@ -62,6 +62,8 @@ private:
     /// Указатель на объект монитора.
     Monitor * monitor;
 
+    QStandardItemModel * monitor_model;
+
     /// Объект pdf принтера.
     QPrinter printer_pdf;
 

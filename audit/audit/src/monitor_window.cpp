@@ -16,6 +16,8 @@ MonitorWindow::MonitorWindow(SettingsObj * set, Monitor * mon, QWidget *parent):
     set_obj = set;
     monitor = mon;
 
+    monitor_model = (QStandardItemModel *) monitor->getModel(false);
+
     connect(&future_watch, SIGNAL(finished()), SLOT(slotPrintOK()));
 
     printer_pdf.setOutputFormat(QPrinter::PdfFormat);
@@ -258,7 +260,7 @@ void MonitorWindow::slotUpdateTrans()
                     set_obj->findDevAlias(id, &dev_name);
 
                     monitor->addTransToModel(id, &trans, tag_name, dev_name);
-                    set_obj->addLogNode(id, &trans); // add node to log file
+                    set_obj->addLastTransToLog(monitor_model); // add last trans to log file
                     eventHandler(id, &trans, tag_name, dev_name);
                     monitor_view->resizeColumnsToContents();
 
@@ -355,8 +357,8 @@ void MonitorWindow::eventHandler(QString dev_num, R245_TRANSACT *trans, QString 
                         trans->code = 0x130;
                     }
 
-                    set_obj->addLogNode(dev_num, trans);
                     monitor->addTransToModel(dev_num, trans, tag_name, dev_name);
+                    set_obj->addLastTransToLog(monitor_model);
                 }
             }
         }

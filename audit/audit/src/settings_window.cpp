@@ -317,19 +317,15 @@ bool SettingsWindow::isReaderDev(QModelIndex index)
 void SettingsWindow::slotNewLog()
 {
 
-    QString file_path = QFileDialog::getSaveFileName(0, "Создание файла истории", "", "*.xml");
+    QString file_path = QFileDialog::getSaveFileName(0, "Создание файла истории", "", "*.csv");
 
     if(!file_path.isEmpty())
     {
         log_le->setText(file_path);
         QFile file(file_path);
 
-        if(utils.openFile(&file, QIODevice::WriteOnly))
-        {
-            QTextStream text_stream(&file);
-            text_stream << "<log>\n";
-            text_stream << "</log>";
-        }
+        // создаем пустой файл
+        utils.openFile(&file, QIODevice::WriteOnly);
 
         utils.closeFile(&file);
         set_obj->openLogFile(file_path, monitor_obj);

@@ -1,13 +1,11 @@
 #include "settings_obj.h"
 #include "global.h"
-#include "trans_parser.h"
 
 SettingsObj::SettingsObj()
 {
 
     fsettings = NULL;
     flog = NULL;
-    log_stream = NULL;
 
     tag_model = new QStandardItemModel();
     tag_model->setObjectName("tag_model");
@@ -131,47 +129,33 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
 
     if(utils.openFile(flog, QIODevice::ReadOnly))
     {
-        qint64 line_ctr = 0;
 
-        // считаем количество строк в файле
+        flog->readLine(); // Первую строку читаем и ничего не делаем
+                          // Первая строка - это заголовок модели
+
+        QStringList str_list;
+        QStandardItemModel * model = (QStandardItemModel *)monitor->getModel(false);
+
         while(!flog->atEnd())
         {
-            flog->readLine();
-            line_ctr++;
+            str_list = QString(flog->readLine()).split(';');
+            QList <QStandardItem *> items;
+
+            for(int column = 0; column < str_list.size(); column++)
+            {
+                items << new QStandardItem(str_list[column]);
+            }
+
+            model->appendRow(items);
         }
 
         utils.closeFile(flog);
-
-        TransParser tparser(line_ctr, monitor, this);
-        QXmlInputSource source(flog);
-        QXmlSimpleReader reader;
-
-        reader.setContentHandler(&tparser);
-        reader.parse(source);
-
-        if(!tparser.parseOK())
-        {
-            utils.showMessage(QMessageBox::Warning,
-                                          "Открытие журнала",
-                                          "Файл журнала поврежден");
-        }
-    }
-
-    if(utils.closeFile(flog))
+    } else
     {
-        qDebug("Close flog");
-    }
-
-    if(utils.openFile(flog, QIODevice::Append))
-    {
-        qDebug("Open flog OK");
-        flog->seek(flog->size() - QString("</log>\n").size());
-        if(log_stream != NULL)
-        {
-            delete log_stream;
-            log_stream = NULL;
-        }
-        log_stream = new QTextStream(flog);
+        utils.showMessage(QMessageBox::Warning,
+                          "Открытие журнала",
+                          "Файл журнала поврежден");
+        return false;
     }
 
     return true;
@@ -247,23 +231,71 @@ void SettingsObj::findDevAlias(QString find_val, QString * alias)
   * @param trans - ссылка на структуру,
   *   содержащую информацию о произошедшем событии, регистрируемое в журнале
   */
-void SettingsObj::addLogNode(QString dev_num, R245_TRANSACT * trans)
+void SettingsObj::addLastTransToLog(QStandardItemModel * model)
 {
-    if(log_stream != NULL)
+    if(flog != NULL)
     {
-        *log_stream << "    <transact>\n";
-        *log_stream << "        <code>"    << trans->code    << "</code>\n";
-        *log_stream << "        <channel>" << trans->channel << "</channel>\n";
-        *log_stream << "        <tid>"     << trans->tid     << "</tid>\n";
-        *log_stream << "        <day>"     << trans->day     << "</day>\n";
-        *log_stream << "        <month>"   << trans->month   << "</month>\n";
-        *log_stream << "        <year>"    << trans->year    << "</year>\n";
-        *log_stream << "        <hour>"    << trans->hour    << "</hour>\n";
-        *log_stream << "        <min>"     << trans->min     << "</min>\n";
-        *log_stream << "        <sec>"     << trans->sec     << "</sec>\n";
-        *log_stream << "        <dow>"     << trans->dow     << "</dow>\n";
-        *log_stream << "        <dev_num>" << dev_num        << "</dev_num>\n";
-        *log_stream << "    </transact>\n";
+
+
+        if(!utils.openFile(flog, QIODevice::Append))
+        {
+            utils.showMessage(QMessageBox::Warning,
+                    "Обновление журнал", "Ошибка открытия файла журнала");
+            return;
+        }
+
+        QTextStream log_stream(flog);
+
+        QString value = "";
+        QString data = "";
+
+        if(flog->size() == 0)
+        {
+            // write table header
+            for(int column = 0; column <= Monitor::TypeEventAttr; column++)
+            {
+                data += model->headerData(column, Qt::Horizontal).toString() + ";";
+            }
+
+            data += "\n";
+        }
+
+        log_stream << data;
+
+        data = "";
+
+        int row = model->rowCount() - 1;
+
+        for(int column = 0; column <= model->columnCount(); column++)
+        {
+            qApp->processEvents();
+            value = model->index(row, column).data().toString();
+
+            // Удаляем служебные символы из строки
+            // Могут встречаться при чтении из пустой ячейки
+            value.remove("\n");
+            value.remove("\r");
+            data += value + ";";
+        }
+
+        log_stream << data << '\n';
+
+        utils.closeFile(flog);
+
+
+           /* *log_stream << "    <transact>\n";
+            *log_stream << "        <code>"    << trans->code    << "</code>\n";
+            *log_stream << "        <channel>" << trans->channel << "</channel>\n";
+            *log_stream << "        <tid>"     << trans->tid     << "</tid>\n";
+            *log_stream << "        <day>"     << trans->day     << "</day>\n";
+            *log_stream << "        <month>"   << trans->month   << "</month>\n";
+            *log_stream << "        <year>"    << trans->year    << "</year>\n";
+            *log_stream << "        <hour>"    << trans->hour    << "</hour>\n";
+            *log_stream << "        <min>"     << trans->min     << "</min>\n";
+            *log_stream << "        <sec>"     << trans->sec     << "</sec>\n";
+            *log_stream << "        <dow>"     << trans->dow     << "</dow>\n";
+            *log_stream << "        <dev_num>" << dev_num        << "</dev_num>\n";
+            *log_stream << "    </transact>\n";*/
     }
 }
 
@@ -1023,17 +1055,12 @@ void SettingsObj::addDevInfoToModel(R245_DEV_INFO * info)
 
 SettingsObj::~SettingsObj()
 {
-    if(log_stream != NULL)
-    {
-        *log_stream << "</log>\n";
-    }
 
     if(utils.closeFile(fsettings))
         delete fsettings;
     if(utils.closeFile(flog))
         delete flog;
 
-    delete log_stream;
     delete tag_model;
     delete tag_model_proxy;
     delete dev_model;

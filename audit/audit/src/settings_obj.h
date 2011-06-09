@@ -115,7 +115,7 @@ public:
     DEV_INFO * getDevSettings(ulong id, unsigned char id_reader, bool addr);
     void readDevInfo();
     void saveSetings();
-    void addLogNode(QString dev_num, R245_TRANSACT * trans);
+    void addLastTransToLog(QStandardItemModel * model);
     void addReaderToModel(unsigned char dev_num, unsigned char addr = 0, QString name = "Нет имени");
     void deleteReaderFromModel(int dev_num, int reader_num);
     bool getReaderSettings(unsigned char dev_num, DEV_INFO * dev);
@@ -152,9 +152,6 @@ private:
       * (в том числе и настройки для устройств, загруженных их файла)
       */
     QMap <ulong, QList<DEV_INFO> *> dev_settings;
-
-    /// Текстовый поток для удобства осуществления файловых операций
-    QTextStream * log_stream;
 
     void readSettingNodes(const QDomNode &node);
     QDomElement makeElement(QDomDocument  & dom_doc,
