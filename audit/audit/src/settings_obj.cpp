@@ -6,6 +6,9 @@ SettingsObj::SettingsObj()
 
     fsettings = NULL;
     flog = NULL;
+    flog_backup = NULL;
+
+    buf_logging = false;
 
     tag_model = new QStandardItemModel();
     tag_model->setObjectName("tag_model");
@@ -26,6 +29,9 @@ SettingsObj::SettingsObj()
 
     dev_model = new DevModel();
     dev_model->setObjectName("dev_model");
+
+    connect(&timer_save_log, SIGNAL(timeout()), SLOT(slotSaveBufLog()));
+    timer_save_log.setInterval(1000);
 }
 
 /**
@@ -122,26 +128,39 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
     {
         delete flog;
         flog = NULL;
+
+        delete flog_backup;
+        flog_backup = NULL;
     }
     qDebug("Open Log");
 
     flog = new QFile(file_name);
+    flog_backup = new QFile(file_name + "~");
 
-    if(utils.openFile(flog, QIODevice::ReadOnly))
+    if(!flog_backup->exists())
+    {
+        // Создаем пустой файл, если ещё не создан
+        utils.openFile(flog_backup, QIODevice::WriteOnly);
+        utils.closeFile(flog_backup);
+    }
+
+    if(utils.openFile(flog_backup, QIODevice::ReadOnly))
     {
 
-        flog->readLine(); // Первую строку читаем и ничего не делаем
+        flog_backup->readLine(); // Первую строку читаем и ничего не делаем
                           // Первая строка - это заголовок модели
 
         QStringList str_list;
         QStandardItemModel * model = (QStandardItemModel *)monitor->getModel(false);
 
-        while(!flog->atEnd())
+        while(!flog_backup->atEnd())
         {
-            str_list = QString(flog->readLine()).split(';');
+            str_list = QString(flog_backup->readLine()).split(';');
             QList <QStandardItem *> items;
+            //QString tag_name = "";
+            //QString dev_name = "";
 
-            for(int column = 0; column < str_list.size(); column++)
+            for(int column = 0; column <= Monitor::TransCodeAttr; column++)
             {
                 items << new QStandardItem(str_list[column]);
             }
@@ -149,7 +168,7 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
             model->appendRow(items);
         }
 
-        utils.closeFile(flog);
+        utils.closeFile(flog_backup);
     } else
     {
         utils.showMessage(QMessageBox::Warning,
@@ -233,26 +252,24 @@ void SettingsObj::findDevAlias(QString find_val, QString * alias)
   */
 void SettingsObj::addLastTransToLog(QStandardItemModel * model)
 {
-    if(flog != NULL)
+    if((flog != NULL) && (flog_backup != NULL))
     {
-
-
-        if(!utils.openFile(flog, QIODevice::Append))
+        if(!utils.openFile(flog_backup, QIODevice::Append))
         {
             utils.showMessage(QMessageBox::Warning,
                     "Обновление журнал", "Ошибка открытия файла журнала");
             return;
         }
 
-        QTextStream log_stream(flog);
+        QTextStream log_stream(flog_backup);
 
         QString value = "";
         QString data = "";
 
-        if(flog->size() == 0)
+        if(flog_backup->size() == 0)
         {
             // write table header
-            for(int column = 0; column <= Monitor::TypeEventAttr; column++)
+            for(int column = 0; column <= Monitor::TransCodeAttr; column++)
             {
                 data += model->headerData(column, Qt::Horizontal).toString() + ";";
             }
@@ -262,11 +279,17 @@ void SettingsObj::addLastTransToLog(QStandardItemModel * model)
 
         log_stream << data;
 
+        if(flog->size() == 0)
+        {
+            saveDataToLog2(data);
+        }
+
+
         data = "";
 
-        int row = model->rowCount() - 1;
+        int row = 0; // так как последняя транзакция записывается первой
 
-        for(int column = 0; column <= model->columnCount(); column++)
+        for(int column = 0; column <= Monitor::TransCodeAttr; column++)
         {
             qApp->processEvents();
             value = model->index(row, column).data().toString();
@@ -277,25 +300,76 @@ void SettingsObj::addLastTransToLog(QStandardItemModel * model)
             value.remove("\r");
             data += value + ";";
         }
+        data += "\n";
 
-        log_stream << data << '\n';
+        log_stream << data;
 
-        utils.closeFile(flog);
+        saveDataToLog2(data);
 
+        utils.closeFile(flog_backup);
+    }
+}
 
-           /* *log_stream << "    <transact>\n";
-            *log_stream << "        <code>"    << trans->code    << "</code>\n";
-            *log_stream << "        <channel>" << trans->channel << "</channel>\n";
-            *log_stream << "        <tid>"     << trans->tid     << "</tid>\n";
-            *log_stream << "        <day>"     << trans->day     << "</day>\n";
-            *log_stream << "        <month>"   << trans->month   << "</month>\n";
-            *log_stream << "        <year>"    << trans->year    << "</year>\n";
-            *log_stream << "        <hour>"    << trans->hour    << "</hour>\n";
-            *log_stream << "        <min>"     << trans->min     << "</min>\n";
-            *log_stream << "        <sec>"     << trans->sec     << "</sec>\n";
-            *log_stream << "        <dow>"     << trans->dow     << "</dow>\n";
-            *log_stream << "        <dev_num>" << dev_num        << "</dev_num>\n";
-            *log_stream << "    </transact>\n";*/
+/**
+ * Сохраняем данные во второй (дублирующий) файл журнала
+ */
+void SettingsObj::saveDataToLog2(QString & data)
+{
+    buf_logging = true;
+    if(flog != NULL)
+    {
+        if(utils.openFile(flog, QIODevice::Append))
+        {
+            if(buf_log.isEmpty())
+            {
+                timer_save_log.stop();
+
+                QTextStream log(flog);
+                log << data;
+            } else
+            {
+                // Сохраняем данныев буфер,
+                // которые записываются в дублирующий файл журнала
+                // в те моменты, когда нет конфликтов на запись
+
+                buf_log.append(data);
+            }
+            utils.closeFile(flog);
+        } else
+        {
+            buf_log.append(data);
+
+            if(!timer_save_log.isActive())
+            {
+                timer_save_log.start();
+            }
+        }
+
+    }
+    buf_logging = false;
+}
+
+void SettingsObj::slotSaveBufLog()
+{
+    if(!buf_logging)
+    {
+        if(flog != NULL)
+        {
+            if(utils.openFile(flog, QIODevice::Append))
+            {
+                QTextStream log(flog);
+
+                if(!buf_log.isEmpty())
+                {
+                    for(int i = 0; i < buf_log.size(); i++)
+                    {
+                        log << buf_log[i];
+                    }
+                    buf_log.clear();
+                }
+                utils.closeFile(flog);
+            }
+        }
     }
 }
 

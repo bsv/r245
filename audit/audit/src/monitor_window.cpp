@@ -56,6 +56,28 @@ void MonitorWindow::slotResizeMonitorView()
   */
 void MonitorWindow::slotClearMonitor()
 {
+    /*R245_TRANSACT trans;
+    QString id = "1234";
+    QString tag_name = "Tag name";
+    QString dev_name = "DEV Name";
+
+    trans.channel = 2;
+    trans.code = 0x10;
+    trans.day = 2;
+    trans.dow = 1;
+    trans.hour = 3;
+    trans.min = 5;
+    trans.month = 5;
+    trans.sec = 34;
+    trans.tid = 323;
+    trans.year = 2011;
+
+    monitor->addTransToModel(id, &trans, tag_name, dev_name);
+    set_obj->addLastTransToLog(monitor_model); // add last trans to log file
+
+    monitor->update();
+    monitor_view->resizeColumnsToContents();*/
+
     monitor->clear();
 
     monitor_view->hideColumn(Monitor::DevNumAttr);

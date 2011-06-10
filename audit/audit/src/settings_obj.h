@@ -6,6 +6,7 @@
 #include <QSortFilterProxyModel>
 #include <QtXml>
 #include <QIODevice>
+#include <QTimer>
 #include <QTextStream>
 #include <QDebug>
 #include <QMenu>
@@ -127,11 +128,28 @@ public:
     QString getTagId(QString name);
 private:
 
+
+    void saveDataToLog2(QString & data);
+
+    /// Таймер по которому, в случае надобности, дописывается дублирующий
+    /// файл журнала
+    QTimer timer_save_log;
+
+    /// Признак записи в буфер, true когда идет запись в буфер
+    bool buf_logging;
+
     /// Указатель на файл настроек
     QFile * fsettings;
 
     /// Указатель на файл журнала
     QFile * flog;
+
+    /// Список буферезированных файлов журнала, которые не смогли записать вовремя,
+    /// так как отсутствова доступ к файлу.
+    QStringList buf_log;
+
+    /// Указатель на файл резервной копии журнала
+    QFile * flog_backup;
 
     /// Указатель на модель синонимов меток
     QStandardItemModel * tag_model;
@@ -166,6 +184,7 @@ private:
     void initSetModels();
 
 public slots:
+    void slotSaveBufLog();
 signals:
         void sigAddReader(QStandardItem *);
 };
