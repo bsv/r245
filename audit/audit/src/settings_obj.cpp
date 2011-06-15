@@ -385,7 +385,6 @@ void SettingsObj::readDevInfo()
     uchar dbyte;
     QString snumber;
     QStringList * dev_list = utils.getDevList();
-    //unsigned char ver[50];
 
     dev_model->clear();
     utils.R245_CloseAllDev();
@@ -427,11 +426,6 @@ void SettingsObj::readDevInfo()
             info.id = crc_id; // info->id может быть для разный считывателей быть
                                // одинаковым, поэтому заменяем на crc(info->serial_number)
             addDevInfoToModel(&info);
-
-            /*if(!utils.R245_GetVersion(dev_ctr, 1, ver))
-                qDebug("VERSION: %s\n", ver);
-            else
-                qDebug("Read version error\n");*/
         }
         dev_ctr++;
     }

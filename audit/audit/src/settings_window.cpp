@@ -3,6 +3,7 @@
 #include <QSortFilterProxyModel>
 #include "settings_window.h"
 #include <QProgressDialog>
+#include "update_addr_dialog.h"
 
 SettingsWindow::SettingsWindow(SettingsObj * set, Monitor * monitor, QWidget *parent):
     QDialog(parent)
@@ -114,18 +115,32 @@ void SettingsWindow::slotUpdAddr()
         unsigned char addr = index.parent().child(index.row(), 0).data().toInt();
         ulong id = index.parent().data().toULongLong();
 
-        DEV_INFO * dev = set_obj->getDevSettings(id, index.row(), false);
+        UpdateAddrDialog upd_dialog(NULL, addr);
+        upd_dialog.exec();
 
-        if(dev != NULL)
+        if(upd_dialog.result() == QDialog::Accepted)
         {
-            utils.showMessage(QMessageBox::Warning, "Внимание",
-                                          "При смене адреса на линии должен быть подключен только один считыватель");
+            uchar t_addr = upd_dialog.getTargAddr();
+            DEV_INFO * dev = set_obj->getDevSettings(id, index.row(), false);
 
-            if(utils.R245_SetAddr(dev_num, dev->addr, addr))
+            if(dev != NULL)
             {
-                utils.showMessage(QMessageBox::Warning, "Смена адреса", "Ошибка смены адреса");
+                //utils.showMessage(QMessageBox::Warning, "Внимание",
+                //                              "При смене адреса на линии должен быть подключен только один считыватель");
+
+                if(utils.R245_SetAddr(dev_num, upd_dialog.getCurAddr(), t_addr))
+                {
+                    utils.showMessage(QMessageBox::Warning, "Смена адреса", "Ошибка смены адреса");
+                } else
+                {
+                    dev->addr = t_addr;
+
+                    QStandardItemModel * model = (QStandardItemModel *) index.model();
+                    QStandardItem * item = model->itemFromIndex(index)->parent()->child(index.row(), 0);
+
+                    item->setText(QString().setNum(t_addr));
+                }
             }
-            dev->addr = addr;
         }
     }
 }
