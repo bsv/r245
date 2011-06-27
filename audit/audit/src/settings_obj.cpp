@@ -142,6 +142,23 @@ bool SettingsObj::openLogFile(QString file_name, Monitor *monitor)
         // Создаем пустой файл, если ещё не создан
         utils.openFile(flog_backup, QIODevice::WriteOnly);
         utils.closeFile(flog_backup);
+    } else
+    {
+        if(flog->size() != flog_backup->size())
+        {
+            bool ok = false;
+            ok = flog->remove() & flog_backup->copy(file_name);
+
+            if(!ok)
+            {
+                QString mes = "Файл журнала поврежден.\nПопробуйте скопировать с заменой файл:\n";
+                mes += file_name + "~\nв файл:\n" + file_name;
+
+                utils.showMessage(QMessageBox::Warning,
+                                  "Открытие журнала", mes);
+                return false;
+            }
+        }
     }
 
     if(utils.openFile(flog_backup, QIODevice::ReadOnly))
@@ -262,7 +279,6 @@ void SettingsObj::addLastTransToLog(QStandardItemModel * model)
         }
 
         QTextStream log_stream(flog_backup);
-
         QString value = "";
         QString data = "";
 
@@ -283,8 +299,6 @@ void SettingsObj::addLastTransToLog(QStandardItemModel * model)
         {
             saveDataToLog2(data);
         }
-
-
         data = "";
 
         int row = 0; // так как последняя транзакция записывается первой
@@ -301,11 +315,8 @@ void SettingsObj::addLastTransToLog(QStandardItemModel * model)
             data += value + ";";
         }
         data += "\n";
-
         log_stream << data;
-
         saveDataToLog2(data);
-
         utils.closeFile(flog_backup);
     }
 }

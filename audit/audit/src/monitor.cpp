@@ -209,18 +209,20 @@ void Monitor::updateAlias(SettingsObj * set_obj)
         dev_item = monitor_model->item(row, DevNumAttr);
         tag_item = monitor_model->item(row, TagIdAttr);
 
-        QString tag_name = "", dev_name = "";
+        QString tag_name = "";
+        QString dev_name = "";
 
-        set_obj->findTagAlias(tag_item->text(), &tag_name);
+        //set_obj->findTagAlias(tag_item->text(), &tag_name);
         set_obj->findDevAlias(dev_item->text(), &dev_name);
 
-        if(tag_name != "")
+        // Закомментирован весь функционал по смене псевдонимов тегов в мониторе
+        /*if(tag_name != "")
         {
             monitor_model->item(row, TagNameAttr)->setText(tag_name);
         } else
         {
             monitor_model->item(row, TagNameAttr)->setText(tag_item->text());
-        }
+        }*/
 
         if(dev_name != "")
         {

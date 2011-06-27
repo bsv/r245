@@ -3,7 +3,7 @@ QT = gui \
     xml
 CONFIG += qt \
     warn_on \
-    release \
+    release\
     static
 DESTDIR = bin
 OBJECTS_DIR = build
